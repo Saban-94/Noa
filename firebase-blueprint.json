@@ -1,0 +1,121 @@
+{
+  "entities": {
+    "Order": {
+      "title": "Order",
+      "description": "A construction material order",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "productId": { "type": "string" },
+              "productName": { "type": "string" },
+              "quantity": { "type": "number" },
+              "unit": { "type": "string" }
+            }
+          }
+        },
+        "driverId": { "type": "string" },
+        "driverName": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "ready", "scheduled", "in_transit", "delivered", "cancelled"]
+        },
+        "deliveryAddress": { "type": "string" },
+        "deliveryLocation": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "specialOrder": { "type": "boolean" },
+        "totalAmount": { "type": "number" }
+      },
+      "required": ["customerId", "items", "status", "createdAt"]
+    },
+    "InventoryItem": {
+      "title": "Inventory Item",
+      "description": "A building material product in stock",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string" },
+        "minLevel": { "type": "number" },
+        "price": { "type": "number" },
+        "category": { "type": "string" }
+      },
+      "required": ["name", "quantity", "unit"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Client information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "email": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Driver": {
+      "title": "Driver",
+      "description": "Delivery driver information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "status": { "type": "string", "enum": ["available", "busy", "offline"] },
+        "currentOrderId": { "type": "string" }
+      },
+      "required": ["name", "status"]
+    },
+    "AILog": {
+      "title": "AI Interaction Log",
+      "description": "Log of AI assistant interactions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "prompt": { "type": "string" },
+        "response": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "orders": {
+      "schema": "Order",
+      "description": "Active and past construction orders"
+    },
+    "inventory": {
+      "schema": "InventoryItem",
+      "description": "Stock of materials"
+    },
+    "customers": {
+      "schema": "Customer",
+      "description": "Client database"
+    },
+    "drivers": {
+      "schema": "Driver",
+      "description": "Fleet information"
+    },
+    "ai_logs": {
+      "schema": "AILog",
+      "description": "AI trace logs"
+    }
+  }
+}

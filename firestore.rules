@@ -1,0 +1,88 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 3. Primitives & Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    
+    // Admin check - bootstrap with the user email from runtime
+    function isAdmin() { 
+      return isVerified() && (
+        request.auth.token.email == 'hsaban2025@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      ); 
+    }
+
+    // Validation Helpers
+    function isValidOrder(data) {
+      return data.keys().hasAll(['customerId', 'items', 'status', 'createdAt']) &&
+             data.customerId is string &&
+             data.items is list &&
+             data.status in ['pending', 'ready', 'scheduled', 'in_transit', 'delivered', 'cancelled'] &&
+             data.createdAt == request.time;
+    }
+
+    function isValidInventory(data) {
+      return data.keys().hasAll(['name', 'quantity', 'unit']) &&
+             data.name is string && data.name.size() <= 100 &&
+             data.quantity is number &&
+             data.unit is string;
+    }
+
+    // --- Collections ---
+
+    match /orders/{orderId} {
+      allow get: if isVerified();
+      allow list: if isVerified(); // In a real app we'd restrict by resource.data.ownerId but here it's an internal ops tool
+      allow create: if isVerified() && isValidOrder(incoming());
+      allow update: if isVerified() && isValidOrder(incoming()) && (
+        isAdmin() || (
+          // Action: Dispatch
+          incoming().diff(existing()).affectedKeys().hasOnly(['driverId', 'driverName', 'status', 'updatedAt']) &&
+          incoming().status in ['scheduled', 'in_transit'] &&
+          incoming().updatedAt == request.time
+        ) || (
+          // Action: Mark Delivered
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) &&
+          incoming().status == 'delivered' &&
+          existing().status != 'cancelled' &&
+          incoming().updatedAt == request.time
+        )
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /inventory/{itemId} {
+      allow read: if isVerified();
+      allow write: if isAdmin() || (isVerified() && isValidInventory(incoming()));
+    }
+
+    match /customers/{customerId} {
+      allow read: if isVerified();
+      allow write: if isAdmin();
+    }
+
+    match /drivers/{driverId} {
+      allow read: if isVerified();
+      allow write: if isVerified();
+    }
+
+    match /ai_logs/{logId} {
+      allow create: if isVerified() && incoming().userId == request.auth.uid;
+      allow read: if isVerified() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /admins/{adminId} {
+      allow read: if isVerified();
+      allow write: if false; // Only manageable via console
+    }
+  }
+}
