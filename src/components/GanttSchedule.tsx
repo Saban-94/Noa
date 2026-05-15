@@ -37,7 +37,7 @@ export const GanttSchedule: React.FC<GanttScheduleProps> = ({ orders, className 
                 {isDelivering && <div className="size-1.5 bg-blue-500 rounded-full animate-pulse" />}
               </div>
               <p className="text-[10px] text-slate-400 font-medium truncate leading-none">
-                {order.items.map(i => i.productName).join(', ')}
+                {Array.isArray(order.items) ? order.items.map(i => i.productName).join(', ') : 'אין פריטים'}
               </p>
             </div>
           );

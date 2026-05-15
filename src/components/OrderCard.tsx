@@ -22,7 +22,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, onAction, className
         <div className="space-y-1">
           <p className="text-[10px] text-slate-500 font-black uppercase tracking-tighter">פריטים</p>
           <div className="space-y-0.5">
-            {order.items.slice(0, 2).map((item: any, idx: number) => (
+            {Array.isArray(order.items) && order.items.slice(0, 2).map((item: any, idx: number) => (
               <p key={idx} className="text-xs font-bold leading-none">{item.productName} ({item.quantity})</p>
             ))}
           </div>
