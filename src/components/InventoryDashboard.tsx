@@ -13,7 +13,7 @@ export const InventoryDashboard: React.FC<InventoryDashboardProps> = ({ items, c
     <div className={cn("space-y-6 flex flex-col items-stretch", className)}>
       <h2 className="text-[10px] font-black uppercase text-slate-400 mb-2 tracking-[0.2em] px-1">מלאי קריטי</h2>
       <div className="space-y-4">
-        {items.map(item => {
+        {Array.isArray(items) && items.map(item => {
           const percent = Math.min(100, Math.max(5, (item.quantity / (item.minLevel * 2)) * 100));
           const isLow = item.quantity <= item.minLevel;
           return (

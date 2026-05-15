@@ -83,32 +83,52 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-900 text-white p-6 relative overflow-hidden">
-        <div className="absolute inset-0 z-0 overflow-hidden">
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-[#070b14] text-white p-6 relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute top-1/4 -left-20 w-96 h-96 bg-blue-600/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-yellow-600/10 rounded-full blur-[120px] animate-pulse" />
+        
+        <div className="absolute inset-0 z-0 overflow-hidden opacity-30">
           <img 
             src="https://i.postimg.cc/qqWtk5qr/Gemini-Generated-Image-6z6qts6z6qts6z6q.png" 
-            className="w-full h-full object-cover opacity-20 scale-110 blur-sm"
+            className="w-full h-full object-cover scale-110 blur-[2px]"
             alt="Noa Background"
           />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#070b14] via-transparent to-[#070b14]/50" />
         </div>
         
-        <div className="relative z-10 text-center space-y-8 max-w-md">
-          <div className="space-y-2">
-            <h1 className="text-5xl font-black italic tracking-tighter uppercase">SabanOS Nexus</h1>
-            <p className="text-slate-400 font-bold tracking-widest uppercase text-xs">Commander Operational Interface</p>
+        <div className="relative z-10 text-center space-y-12 max-w-lg w-full">
+          <div className="space-y-4">
+            <div className="inline-block px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] uppercase tracking-[0.4em] font-black text-slate-400 mb-2">
+              Operational Command Unit
+            </div>
+            <h1 className="text-6xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-white drop-shadow-2xl">
+              SabanOS<br /><span className="text-yellow-500">Nexus</span>
+            </h1>
           </div>
           
-          <div className="bg-white/10 backdrop-blur-md p-8 rounded-3xl border border-white/20 shadow-2xl">
-            <p className="text-slate-300 text-sm mb-8 leading-relaxed">
-              שלום ראמי, אני ממתינה לך. <br />אנא התחבר כדי לסנכרן את חדר המבצעים.
+          <div className="bg-white/5 backdrop-blur-2xl p-10 rounded-[2.5rem] border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/10">
+            <div className="flex justify-center mb-8">
+              <div className="w-20 h-20 rounded-3xl bg-slate-900 border border-white/10 flex items-center justify-center shadow-inner overflow-hidden">
+                <img src="https://i.postimg.cc/qqWtk5qr/Gemini-Generated-Image-6z6qts6z6qts6z6q.png" className="w-full h-full object-cover" alt="Noa" />
+              </div>
+            </div>
+            
+            <p className="text-slate-300 text-sm mb-10 leading-relaxed font-bold">
+              שלום ראמי, נועה כאן.<br />אנא התחבר כדי לסנכרן את חדר המבצעים ולהתחיל את המשמרת.
             </p>
+            
             <button 
               onClick={signInWithGoogle}
-              className="w-full flex items-center justify-center gap-3 bg-white text-slate-900 font-black py-4 rounded-xl hover:bg-slate-100 transition-all active:scale-95"
+              className="w-full flex items-center justify-center gap-4 bg-yellow-500 text-slate-900 font-black py-4.5 rounded-2xl hover:bg-yellow-400 transition-all active:scale-95 shadow-[0_10px_20px_-5px_rgba(234,179,8,0.4)]"
             >
               <LogIn size={20} />
-              התחברות מפקד
+              כניסת מפקד מבצעים
             </button>
+            
+            <p className="mt-6 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+              Secured by Google Identity • v16.4.2
+            </p>
           </div>
         </div>
       </div>

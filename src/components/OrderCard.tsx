@@ -15,7 +15,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, onAction, className
         <span className="text-[10px] font-black border-b border-yellow-500 uppercase tracking-widest text-slate-400">
           כרטיס פעולה: {order.customerName}
         </span>
-        <span className="text-[10px] opacity-40 font-mono italic">#ID-{order.id.slice(-4).toUpperCase()}</span>
+        <span className="text-[10px] opacity-40 font-mono italic">#ID-{order.id?.slice(-4).toUpperCase() || 'TEMP'}</span>
       </div>
 
       <div className="grid grid-cols-2 gap-4 relative z-10">

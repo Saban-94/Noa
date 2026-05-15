@@ -32,7 +32,7 @@ export const GanttSchedule: React.FC<GanttScheduleProps> = ({ orders, className 
             >
               <div className="flex justify-between items-center mb-1">
                 <p className="font-bold text-white text-[11px] tracking-tight truncate">
-                  #{order.id.slice(-4).toUpperCase()} - {order.customerName.split(' ')[0]}
+                  #{order.id?.slice(-4).toUpperCase() || '????'} - {order.customerName?.split(' ')[0] || 'לקוח'}
                 </p>
                 {isDelivering && <div className="size-1.5 bg-blue-500 rounded-full animate-pulse" />}
               </div>
