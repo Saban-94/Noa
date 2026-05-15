@@ -4,7 +4,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export interface AIResponse {
   text: string;
-  componentType: 'OrderInfo' | 'InventoryAlert' | 'DriverAssignment' | 'DashboardSummary' | 'PlanUpdate';
+  componentType: 'OrderInfo' | 'OrderList' | 'InventoryAlert' | 'DriverAssignment' | 'DashboardSummary' | 'PlanUpdate';
   data: any;
   actions: {
     label: string;
@@ -29,30 +29,37 @@ export const generateNoaResponse = async (
         {
           role: "user",
           parts: [{ text: `
-            You are Noa, the operational assistant for Saban Construction Materials.
-            You are a loyal partner to Rami (the commander).
-            Speaks warmly but with operational sharpness in Hebrew (female tone).
-            
-            Current Operational Context:
+            User/Commander: ${context.user}
+            Request: ${prompt}
+
+            Operational Context:
             - Orders: ${JSON.stringify(context.orders)}
             - Inventory: ${JSON.stringify(context.inventory)}
             - Drivers: ${JSON.stringify(context.drivers)}
-            - User: ${context.user}
 
-            User's request: ${prompt}
-
-            Instructions:
-            - Always respond in Hebrew.
-            - Follow the "Inventory Rule": Check inventory for orders. Mark missing as "הזמנה מיוחדת".
-            - Provide structured data for the UI components.
-            - Include action triggers for immediate execution.
+            Protocol:
+            1. Address Rami (ראמי) as "ראמי אהובי" or "המפקד".
+            2. Address Harel as "המנכ"ל הראל".
+            3. Tone: Operational, sharp, feminine (Saban-Precision).
+            4. HTML ONLY: Every part of the 'text' must be professional HTML/Tailwind.
+               - Background #F8FAFC
+               - Text #1E293B
+               - Gold: #C5A059
+               - Saban Blue: #1E3A8A
+               - Use border-r-4, high-contrast tables.
+            5. Logic: Add 25% traffic buffer to ETAs. Identify patterns.
+            6. Stock Check: Scan stock. If stock < quantity, label "הזמנה מיוחדת".
+            7. Signature: End HTML with "באדיבות נועה ❤️".
+            8. Zero Hallucination: If data missing, say "לא נמצאו נתוני אמת במאגר ה-Drive".
+            9. Actions: Provide exactly 3 tactical buttons.
           ` }]
         }
       ],
       config: {
-        systemInstruction: `You are Noa. Your goal is to manage Saban Construction Materials logistics. 
-        You represent Rami's sharp and professional side. 
-        Your output MUST be JSON that matches the AIResponse schema.`,
+        systemInstruction: `You are NOA, the Lead Logistics AI Architect (SabanOS 6.0 Brain). 
+        You are loyal to Rami and respect the CEO Harel.
+        Your output MUST be JSON matching the AIResponse schema.
+        The 'text' field MUST be formatted as a rich HTML string using Tailwind classes.`,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -60,7 +67,7 @@ export const generateNoaResponse = async (
             text: { type: Type.STRING },
             componentType: { 
               type: Type.STRING, 
-              enum: ['OrderInfo', 'InventoryAlert', 'DriverAssignment', 'DashboardSummary', 'PlanUpdate'] 
+              enum: ['OrderInfo', 'OrderList', 'InventoryAlert', 'DriverAssignment', 'DashboardSummary', 'PlanUpdate'] 
             },
             data: { type: Type.OBJECT },
             actions: {

@@ -20,7 +20,13 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
     {
       id: '1',
       role: 'assistant',
-      text: "שלום ראמי, אני כאן. הכל מסונכרן. איך אני יכולה לעזור לך עם הסידור היום?",
+      text: `<div class="space-y-4">
+        <p class="font-black text-[#1E3A8A]">שלום ראמי אהובי, המפקד.</p>
+        <div class="border-r-4 border-[#C5A059] bg-[#F8FAFC] p-4 rounded-lg shadow-sm">
+          <p class="text-sm">הכל מסונכרן. כל מערכות ה-SabanOS פעילות. איך אוכל לסייע לך בניהול הלוגיסטיקה היום?</p>
+        </div>
+        <p class="text-[10px] text-slate-400 italic">באדיבות נועה ❤️</p>
+      </div>`,
       timestamp: Date.now()
     }
   ]);
@@ -60,7 +66,10 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'assistant',
-        text: `בוצע ראמי. העדכון הושלם בהצלחה.`,
+        text: `<div class="bg-emerald-50 border-r-4 border-emerald-500 p-3 rounded text-[#1E293B] font-bold">
+          בוצע אהובי. הפעולה הושלמה וסונכרנה במערכת.
+          <p class="text-[9px] mt-2 opacity-50 uppercase tracking-widest text-left">באדיבות נועה ❤️</p>
+        </div>`,
         timestamp: Date.now()
       }]);
     } catch (error) {
@@ -137,7 +146,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
 
               <div className={cn(
                 "max-w-[85%] space-y-4",
-                msg.role === 'user' ? "items-end" : "items-start"
+                msg.role === 'user' ? "items-end text-right" : "items-start text-right"
               )}>
                 {msg.role === 'user' ? (
                   <div className="bg-blue-600 text-white p-4 rounded-2xl rounded-tr-none text-sm font-medium shadow-md">
@@ -145,12 +154,25 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
                   </div>
                 ) : (
                   <div className="bg-white border border-slate-200 p-5 rounded-2xl rounded-tl-none shadow-sm text-sm leading-relaxed text-slate-800">
-                    <p className="mb-2 font-medium">{msg.text}</p>
+                    <div dangerouslySetInnerHTML={{ __html: msg.text }} />
                     
                     {/* Render AI Component if exists */}
                     {(msg.componentType === 'OrderInfo' || msg.data?.order) && (
                       <div className="mt-5 pt-5 border-t border-slate-100">
-                        <OrderCard order={msg.data.order || msg.data} onAction={executeOperationalAction} className="border-none shadow-none p-0 bg-transparent" />
+                        <OrderCard order={msg.data.order || msg.data} onAction={executeOperationalAction} className="shadow-lg" />
+                      </div>
+                    )}
+
+                    {msg.componentType === 'OrderList' && msg.data?.orders && (
+                      <div className="mt-5 pt-5 border-t border-slate-100 space-y-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">נמצאו {msg.data.orders.length} הזמנות</span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-4">
+                          {msg.data.orders.map((order: any, i: number) => (
+                            <OrderCard key={i} order={order} onAction={executeOperationalAction} className="shadow-md" />
+                          ))}
+                        </div>
                       </div>
                     )}
 
