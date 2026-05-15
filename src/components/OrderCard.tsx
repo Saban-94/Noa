@@ -16,8 +16,16 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, onAction, className
   const itemsSummary = order.itemsSummary || (items.length > 0 ? `${items.length} פריטים` : "אין פריטים רשומים");
   
   const rawDate = order.dueDate || order.date || order.deliveryDate || order.updatedAt;
-  const formattedDate = rawDate ? new Date(rawDate).toLocaleDateString('he-IL') : "טרם נקבע";
-  const formattedTime = rawDate ? new Date(rawDate).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : "--:--";
+  let formattedDate = "טרם נקבע";
+  let formattedTime = "--:--";
+  
+  if (rawDate) {
+    const date = new Date(rawDate);
+    if (!isNaN(date.getTime())) {
+      formattedDate = date.toLocaleDateString('he-IL');
+      formattedTime = date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+    }
+  }
 
   return (
     <div className={cn(

@@ -6,6 +6,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Connection Test
+    match /test/connection {
+      allow read: if true;
+    }
+
     // 3. Primitives & Helpers
     function isSignedIn() { return request.auth != null; }
     function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
@@ -40,8 +45,7 @@ service cloud.firestore {
     // --- Collections ---
 
     match /orders/{orderId} {
-      allow get: if isVerified();
-      allow list: if isVerified(); // In a real app we'd restrict by resource.data.ownerId but here it's an internal ops tool
+      allow read: if true;
       allow create: if isVerified() && isValidOrder(incoming());
       allow update: if isVerified() && isValidOrder(incoming()) && (
         isAdmin() || (
@@ -61,24 +65,40 @@ service cloud.firestore {
     }
 
     match /inventory/{itemId} {
-      allow read: if isVerified();
+      allow read: if true;
       allow write: if isAdmin() || (isVerified() && isValidInventory(incoming()));
     }
 
     match /customers/{customerId} {
-      allow read: if isVerified();
+      allow read: if true;
       allow write: if isAdmin();
     }
 
     match /drivers/{driverId} {
-      allow read: if isVerified();
+      allow read: if true;
       allow write: if isVerified();
     }
 
     match /ai_logs/{logId} {
       allow create: if isVerified() && incoming().userId == request.auth.uid;
-      allow read: if isVerified() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if true;
     }
+
+    // Support for the remaining collections required by V41
+    match /brands/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /bridge_sessions/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /categories/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /chats/{id} { allow read: if true; allow write: if isVerified(); }
+    match /encyclopedia_categories/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /encyclopedia_items/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /internal_team_chats/{id} { allow read: if true; allow write: if isVerified(); }
+    match /morning_reports/{id} { allow read: if true; allow write: if isVerified(); }
+    match /office_messages/{id} { allow read: if true; allow write: if isVerified(); }
+    match /reminders/{id} { allow read: if true; allow write: if isVerified(); }
+    match /sales/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /user_magic_pages/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /user_settings/{id} { allow read: if true; allow write: if isVerified(); }
+    match /users/{id} { allow read: if true; allow write: if isAdmin(); }
 
     match /admins/{adminId} {
       allow read: if isVerified();

@@ -116,6 +116,20 @@
     "ai_logs": {
       "schema": "AILog",
       "description": "AI trace logs"
-    }
+    },
+    "brands": { "schema": "object", "description": "Brand management" },
+    "bridge_sessions": { "schema": "object", "description": "Integration sessions" },
+    "categories": { "schema": "object", "description": "Product categories" },
+    "chats": { "schema": "object", "description": "Customer support chats" },
+    "encyclopedia_categories": { "schema": "object", "description": "Knowledge base categories" },
+    "encyclopedia_items": { "schema": "object", "description": "Knowledge base articles" },
+    "internal_team_chats": { "schema": "object", "description": "Team communication" },
+    "morning_reports": { "schema": "object", "description": "Daily operational summaries" },
+    "office_messages": { "schema": "object", "description": "HQ announcements" },
+    "reminders": { "schema": "object", "description": "Task reminders" },
+    "sales": { "schema": "object", "description": "Sales records" },
+    "user_magic_pages": { "schema": "object", "description": "Custom user landing pages" },
+    "user_settings": { "schema": "object", "description": "User preferences" },
+    "users": { "schema": "object", "description": "System users" }
   }
 }

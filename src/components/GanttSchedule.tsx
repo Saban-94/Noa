@@ -27,7 +27,9 @@ export const GanttSchedule: React.FC<GanttScheduleProps> = ({ orders, className 
     const d = order.dueDate || order.date || order.deliveryDate;
     if (!d) return 'טרם נקבע';
     try {
-      return new Date(d).toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
+      const date = new Date(d);
+      if (isNaN(date.getTime())) return 'טרם נקבע';
+      return date.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
     } catch {
       return 'טרם נקבע';
     }
@@ -37,7 +39,9 @@ export const GanttSchedule: React.FC<GanttScheduleProps> = ({ orders, className 
     const d = order.dueDate || order.date || order.deliveryDate;
     if (!d) return 'טרם נקבע';
     try {
-      return new Date(d).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+      const date = new Date(d);
+      if (isNaN(date.getTime())) return '--:--';
+      return date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
     } catch {
       return '--:--';
     }
