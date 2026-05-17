@@ -134,14 +134,14 @@ export default function App() {
             <img src={currentPersona.avatar} alt="AI" className="w-full h-full object-cover" />
           </div>
           <div className="leading-tight">
-            <h1 className="text-lg md:text-xl font-black tracking-tighter uppercase mb-0.5 whitespace-nowrap">סבן Nexus V41</h1>
+            <h1 className="text-lg md:text-xl font-black tracking-tighter uppercase mb-0.5 whitespace-nowrap">נועה</h1>
             <p className="text-[9px] uppercase tracking-widest text-slate-400 font-bold">ח.סבן חומרי בניין בע"מ</p>
           </div>
         </div>
         
         <div className="flex items-center gap-3 md:gap-6">
           <div className="text-left hidden sm:block">
-            <p className="text-[10px] text-slate-400 uppercase font-black tracking-wider leading-none mb-1">זהות נוכחית</p>
+            <p className="text-[10px] text-slate-400 uppercase font-black tracking-wider leading-none mb-1">מנהלת סידור </p>
             <div className="flex items-center gap-2 justify-end">
               <Shield size={10} className="text-yellow-500" />
               <p className="font-black uppercase tracking-tight text-white text-sm">{currentPersona.name}</p>
@@ -307,11 +307,11 @@ export default function App() {
           )}
           style={{
             paddingBottom: '0px',
-            marginRight: '99px',
-            marginLeft: '99px',
-            marginTop: '150px',
-            marginBottom: '0px',
-            paddingLeft: '1px'
+            marginRight: '0px',
+            marginLeft: '0px',
+            marginTop: '0px',
+            marginBottom: '550px',
+            paddingLeft: '0px'
           }}
         >
           {leftSidebarOpen ? <X size={20} /> : <Truck size={20} />}
@@ -325,10 +325,10 @@ export default function App() {
           style={{
             paddingBottom: '0px',
             paddingTop: '0px',
-            marginRight: '-90px',
+            marginRight: '0px',
             marginLeft: '0px',
-            marginTop: '150px',
-            marginBottom: '250px'
+            marginTop: '0px',
+            marginBottom: '300px'
           }}
         >
           {rightSidebarOpen ? <X size={20} /> : <Database size={20} />}
