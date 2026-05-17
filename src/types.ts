@@ -31,9 +31,10 @@ export interface InventoryItem {
 
 export interface Order {
   id: string;
+  orderNumber?: string;
   customerId: string;
   customerName: string;
-  items?: {
+  items?: string | {
     productId: string;
     productName: string;
     quantity: number;
@@ -44,7 +45,8 @@ export interface Order {
   driverId?: string;
   driverName?: string;
   status: OrderStatus | string;
-  deliveryAddress: string;
+  deliveryAddress?: string;
+  destination?: string;
   lat?: number;
   lng?: number;
   currentLat?: number;

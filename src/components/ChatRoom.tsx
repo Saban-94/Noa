@@ -35,6 +35,8 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const [executingActionId, setExecutingActionId] = useState<string | null>(null);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({
@@ -53,10 +55,16 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   };
 
-  const executeOperationalAction = async (type: string, payload: any) => {
+  const executeOperationalAction = async (type: string, payload: any, actionId?: string) => {
+    if (executingActionId) return;
+    setExecutingActionId(actionId || type);
+    
     try {
       console.log(`Executing ${type}:`, payload);
       
+      // Artificial delay for UX
+      await new Promise(resolve => setTimeout(resolve, 800));
+
       if (type === 'dispatch' && payload.orderId) {
         const orderRef = doc(db, 'orders', payload.orderId);
         await updateDoc(orderRef, {
@@ -65,28 +73,41 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
           driverId: payload.driverId || 'DRIVER-AUTO',
           driverName: payload.driverName || 'נהג תורן'
         });
+      } else if (type === 'send_schedule' || type === 'dispatch_all') {
+        // Mocking schedule broadcast to morning_reports
+        await addDoc(collection(db, 'morning_reports'), {
+          type: 'DRIVER_SYNC',
+          sender: auth.currentUser?.uid,
+          timestamp: serverTimestamp(),
+          status: 'SENT'
+        });
       } else if (type === 'update_inventory' && payload.itemId) {
         const itemRef = doc(db, 'inventory', payload.itemId);
         await updateDoc(itemRef, {
           quantity: payload.newQuantity,
           updatedAt: serverTimestamp()
         });
-      } else if (type === 'waze') {
-        onAction('waze', payload);
+      } else if (type === 'waze' || type === 'view_map' || type === 'view_inventory') {
+        onAction(type, payload);
       }
       
-      // Notify AI of success
+      // Notify AI of success with Noa's specific message
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'assistant',
-        text: `<div class="bg-emerald-50 border-r-4 border-emerald-500 p-3 rounded text-[#1E293B] font-bold">
-          בוצע אהובי. הפעולה הושלמה וסונכרנה במערכת.
-          <p class="text-[9px] mt-2 opacity-50 uppercase tracking-widest text-left">באדיבות נועה ❤️</p>
+        text: `<div class="bg-emerald-50 border-r-4 border-emerald-500 p-4 rounded-xl text-[#065F46] font-bold shadow-sm animate-in fade-in slide-in-from-right-4 duration-500">
+          <div class="flex items-center gap-2 mb-1">
+            <div class="size-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span>בוצע אהובי.</span>
+          </div>
+          <p class="text-xs">הפעולה הושלמה וסונכרנה במערכת. באדיבות נועה ❤️</p>
         </div>`,
         timestamp: Date.now()
       }]);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, 'operational_action');
+    } finally {
+      setExecutingActionId(null);
     }
   };
 
@@ -216,15 +237,34 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
                     {/* Quick Actions */}
                     {msg.actions && msg.actions.length > 0 && (
                       <div className="mt-5 flex flex-wrap gap-2">
-                        {msg.actions.map((action: any, i: number) => (
-                          <button
-                            key={i}
-                            onClick={() => executeOperationalAction(action.type, action.payload)}
-                            className="text-[11px] font-black py-2 px-4 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all hover:-translate-y-0.5 active:translate-y-0 uppercase tracking-widest shadow-sm"
-                          >
-                            {action.label}
-                          </button>
-                        ))}
+                        {msg.actions.map((action: any, i: number) => {
+                          const actionId = `action-${msg.id}-${i}`;
+                          const isLoading = executingActionId === actionId || executingActionId === action.type;
+                          
+                          // Normalize action types based on label keywords if needed
+                          let finalType = action.type;
+                          const label = action.label?.toLowerCase() || '';
+                          if (label.includes('שלח שיבוץ')) finalType = 'send_schedule';
+                          if (label.includes('מפת לוגיסטיקה')) finalType = 'view_map';
+                          if (label.includes('מלאי חסר')) finalType = 'view_inventory';
+
+                          return (
+                            <button
+                              key={i}
+                              disabled={!!executingActionId}
+                              onClick={() => executeOperationalAction(finalType, action.payload, actionId)}
+                              className={cn(
+                                "text-[11px] font-black py-2.5 px-5 rounded-xl transition-all flex items-center gap-2 uppercase tracking-widest shadow-sm border",
+                                isLoading 
+                                  ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed" 
+                                  : "bg-slate-900 text-white border-slate-900 hover:bg-slate-800 hover:-translate-y-0.5 active:translate-y-0 shadow-slate-900/10"
+                              )}
+                            >
+                              {isLoading && <Loader2 size={12} className="animate-spin" />}
+                              {action.label}
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

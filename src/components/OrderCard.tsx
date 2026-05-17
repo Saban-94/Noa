@@ -65,9 +65,11 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, onAction, className
             <h3 className="text-sm font-black text-white tracking-wide">
               {order.customerName || 'לקוח לא ידוע'}
             </h3>
-            <div className="flex items-center gap-1.5 text-yellow-500 font-black text-[10px] flex-row-reverse">
-              <Clock size={12} />
-              <span>{formattedDate} | {formattedTime}</span>
+            <div className="flex items-center gap-1.5 text-yellow-500 font-black flex-row-reverse">
+              <Clock size={14} strokeWidth={3} />
+              <span className="text-base tracking-tighter">{formattedTime}</span>
+              <span className="mx-0.5 opacity-30">|</span>
+              <span className="text-[11px] font-bold">{formattedDate}</span>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-row-reverse w-full">

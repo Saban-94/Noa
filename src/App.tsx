@@ -101,9 +101,16 @@ export default function App() {
     return acc;
   }, {} as Record<string, number>);
 
+  const [showMap, setShowMap] = useState(true);
+
   const handleAction = (type: string, payload: any) => {
     if (type === 'waze') {
       window.open(`https://waze.com/ul?q=${encodeURIComponent(payload.address)}`, '_blank');
+    } else if (type === 'view_map') {
+      setLeftSidebarOpen(true);
+      setShowMap(true);
+    } else if (type === 'view_inventory') {
+      setRightSidebarOpen(true);
     }
   };
 
@@ -185,7 +192,12 @@ export default function App() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-[#070b14]/50">
-                <GanttSchedule orders={orders} />
+                <GanttSchedule 
+                  orders={orders} 
+                  drivers={drivers} 
+                  showMap={showMap} 
+                  setShowMap={setShowMap} 
+                />
               </div>
             </motion.aside>
           )}
@@ -293,6 +305,14 @@ export default function App() {
             "size-12 rounded-2xl flex items-center justify-center shadow-2xl transition-all active:scale-95 border border-white/10",
             leftSidebarOpen ? "bg-white text-slate-900" : "bg-slate-900 text-white"
           )}
+          style={{
+            paddingBottom: '0px',
+            marginRight: '99px',
+            marginLeft: '99px',
+            marginTop: '150px',
+            marginBottom: '0px',
+            paddingLeft: '1px'
+          }}
         >
           {leftSidebarOpen ? <X size={20} /> : <Truck size={20} />}
         </button>
@@ -302,6 +322,14 @@ export default function App() {
             "size-12 rounded-2xl flex items-center justify-center shadow-2xl transition-all active:scale-95 border border-white/10",
             rightSidebarOpen ? "bg-white text-slate-900" : "bg-slate-900 text-white"
           )}
+          style={{
+            paddingBottom: '0px',
+            paddingTop: '0px',
+            marginRight: '-90px',
+            marginLeft: '0px',
+            marginTop: '150px',
+            marginBottom: '250px'
+          }}
         >
           {rightSidebarOpen ? <X size={20} /> : <Database size={20} />}
         </button>
