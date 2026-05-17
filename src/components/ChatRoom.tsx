@@ -32,13 +32,26 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
     }
   }, [messages, isTyping]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    setShowScrollBottom(scrollHeight - scrollTop - clientHeight > 300);
+  };
+
+  const scrollToBottom = () => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  };
 
   const executeOperationalAction = async (type: string, payload: any) => {
     try {
@@ -116,20 +129,27 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#f8fafc] relative">
+    <div className="flex flex-col h-full bg-[#f8fafc] relative overflow-hidden">
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar pt-10">
-        <AnimatePresence initial={false}>
-          {messages.map((msg) => (
-            <motion.div
-              key={msg.id}
-              initial={{ opacity: 0, y: 15, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              className={cn(
-                "flex items-start gap-4",
-                msg.role === 'user' ? "flex-row-reverse" : "flex-row"
-              )}
-            >
+      <div 
+        ref={scrollRef} 
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar pt-10 overscroll-contain"
+      >
+        <motion.div layout className="flex flex-col gap-8 min-h-full justify-end">
+          <AnimatePresence initial={false} mode="popLayout">
+            {messages.map((msg) => (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                layout
+                className={cn(
+                  "flex items-start gap-4",
+                  msg.role === 'user' ? "flex-row-reverse" : "flex-row"
+                )}
+              >
               {/* Avatar for AI */}
               {msg.role === 'assistant' && (
                 <div className="w-8 h-8 rounded-full border border-slate-300 overflow-hidden flex-shrink-0 mt-1 shadow-sm">
@@ -159,7 +179,16 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
                     {/* Render AI Component if exists */}
                     {(msg.componentType === 'OrderInfo' || msg.data?.order) && (
                       <div className="mt-5 pt-5 border-t border-slate-100">
-                        <OrderCard order={msg.data.order || msg.data} onAction={executeOperationalAction} className="shadow-lg" />
+                        <OrderCard 
+                          order={(() => {
+                            const snap = msg.data?.order || msg.data;
+                            if (!snap?.id) return snap;
+                            const live = orders.find((o: any) => o.id === snap.id);
+                            return live ? { ...snap, ...live } : snap;
+                          })()} 
+                          onAction={executeOperationalAction} 
+                          className="shadow-lg" 
+                        />
                       </div>
                     )}
 
@@ -170,7 +199,15 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
                         </div>
                         <div className="grid grid-cols-1 gap-4">
                           {msg.data.orders.map((order: any, i: number) => (
-                            <OrderCard key={i} order={order} onAction={executeOperationalAction} className="shadow-md" />
+                            <OrderCard 
+                              key={i} 
+                              order={(() => {
+                                const live = orders.find((o: any) => o.id === order.id);
+                                return live ? { ...order, ...live } : order;
+                              })()} 
+                              onAction={executeOperationalAction} 
+                              className="shadow-md" 
+                            />
                           ))}
                         </div>
                       </div>
@@ -196,13 +233,28 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
             </motion.div>
           ))}
         </AnimatePresence>
+        </motion.div>
         
         {isTyping && (
-          <div className="flex items-center gap-3 text-slate-400 ml-12">
+          <div className="flex items-center gap-3 text-slate-400 ml-12 py-4">
             <Loader2 size={16} className="animate-spin" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em] italic">נועה מעבדת נתונים...</span>
           </div>
         )}
+
+        <AnimatePresence>
+          {showScrollBottom && (
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              onClick={scrollToBottom}
+              className="fixed bottom-32 left-1/2 -translate-x-1/2 bg-yellow-500 text-slate-900 rounded-full py-2 px-4 text-[10px] font-black uppercase tracking-widest shadow-2xl z-20 border border-yellow-400/50"
+            >
+              המשך למטה
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Input */}

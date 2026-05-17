@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { cn } from '../lib/utils';
-import { Calendar, History, ListFilter, MapPin, Package, Clock, Warehouse, ChevronDown } from 'lucide-react';
+import { Calendar, History, ListFilter, MapPin, Package, Clock, Warehouse, ChevronDown, Map as MapIcon, Layers } from 'lucide-react';
 import { Order, STATUS_LABELS } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { TrackingMap } from './TrackingMap';
 
 interface GanttScheduleProps {
   orders: Order[];
@@ -12,6 +13,7 @@ interface GanttScheduleProps {
 export const GanttSchedule: React.FC<GanttScheduleProps> = ({ orders, className }) => {
   const [tab, setTab] = useState<'active' | 'history'>('active');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showMap, setShowMap] = useState(true);
 
   const activeOrders = orders.filter(o => o.status !== 'delivered' && o.status !== 'סופק' && o.status !== 'cancelled');
   const historyOrders = orders.filter(o => o.status === 'delivered' || o.status === 'סופק' || o.status === 'cancelled');
@@ -54,27 +56,51 @@ export const GanttSchedule: React.FC<GanttScheduleProps> = ({ orders, className 
           <h2 className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] text-right">
             {tab === 'active' ? 'סידור עבודה' : 'היסטוריית הזמנות'}
           </h2>
-          <div className="flex bg-slate-800/50 p-1 rounded-lg border border-slate-700/50">
+          <div className="flex items-center gap-2">
             <button 
-              onClick={() => setTab('active')}
+              onClick={() => setShowMap(!showMap)}
               className={cn(
-                "p-1.5 rounded-md transition-all",
-                tab === 'active' ? "bg-yellow-500 text-slate-900 shadow-lg" : "text-slate-500 hover:text-slate-300"
+                "p-1.5 rounded-md transition-all border",
+                showMap ? "bg-blue-500/20 border-blue-500/50 text-blue-400" : "bg-slate-800/50 border-slate-700 text-slate-500 hover:text-slate-300"
               )}
             >
-              <ListFilter size={14} />
+              <MapIcon size={14} />
             </button>
-            <button 
-              onClick={() => setTab('history')}
-              className={cn(
-                "p-1.5 rounded-md transition-all",
-                tab === 'history' ? "bg-yellow-500 text-slate-900 shadow-lg" : "text-slate-500 hover:text-slate-300"
-              )}
-            >
-              <History size={14} />
-            </button>
+            <div className="flex bg-slate-800/50 p-1 rounded-lg border border-slate-700/50">
+              <button 
+                onClick={() => setTab('active')}
+                className={cn(
+                  "p-1.5 rounded-md transition-all",
+                  tab === 'active' ? "bg-yellow-500 text-slate-900 shadow-lg" : "text-slate-500 hover:text-slate-300"
+                )}
+              >
+                <ListFilter size={14} />
+              </button>
+              <button 
+                onClick={() => setTab('history')}
+                className={cn(
+                  "p-1.5 rounded-md transition-all",
+                  tab === 'history' ? "bg-yellow-500 text-slate-900 shadow-lg" : "text-slate-500 hover:text-slate-300"
+                )}
+              >
+                <History size={14} />
+              </button>
+            </div>
           </div>
         </div>
+
+        <AnimatePresence>
+          {showMap && activeOrders.length > 0 && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+               <TrackingMap orders={activeOrders} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="space-y-3">
@@ -88,6 +114,8 @@ export const GanttSchedule: React.FC<GanttScheduleProps> = ({ orders, className 
             <motion.div 
               key={order.id} 
               layout
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
               onClick={() => toggleExpand(order.id)}
               className={cn(
                 "border-r-4 rounded-xl transition-all cursor-pointer overflow-hidden group text-right",
@@ -98,8 +126,15 @@ export const GanttSchedule: React.FC<GanttScheduleProps> = ({ orders, className 
                 isExpanded ? "p-0" : "p-4"
               )}
             >
-              {!isExpanded ? (
-                <div className="flex flex-col gap-2">
+              <AnimatePresence mode="wait">
+                {!isExpanded ? (
+                  <motion.div 
+                    key="collapsed"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex flex-col gap-2"
+                  >
                   <div className="flex justify-between items-start flex-row-reverse text-right">
                     <div className="flex flex-col items-end">
                       <div className="flex items-center gap-1.5 text-yellow-500 font-black text-xs flex-row-reverse">
@@ -134,9 +169,15 @@ export const GanttSchedule: React.FC<GanttScheduleProps> = ({ orders, className 
                     <MapPin size={10} />
                     <span className="truncate">{order.deliveryAddress}</span>
                   </div>
-                </div>
+                </motion.div>
               ) : (
-                <div className="p-5 space-y-4">
+                <motion.div 
+                  key="expanded"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="p-5 space-y-4"
+                >
                   <div className="flex justify-between items-start flex-row-reverse">
                     <div className="text-right">
                       <h3 className="text-sm font-black text-white mb-1">{order.customerName}</h3>
@@ -186,8 +227,9 @@ export const GanttSchedule: React.FC<GanttScheduleProps> = ({ orders, className 
                      <p className="text-[10px] text-blue-400 font-black uppercase mb-1">יעד פריקה</p>
                      <p className="text-xs font-bold text-slate-300 leading-relaxed">{order.deliveryAddress}</p>
                   </div>
-                </div>
+                </motion.div>
               )}
+              </AnimatePresence>
             </motion.div>
           );
         })}

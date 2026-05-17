@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { cn } from '../lib/utils';
 import { MapPin, Phone, Truck, Clock } from 'lucide-react';
 import { STATUS_LABELS } from '../types';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface OrderCardProps {
   order: any;
@@ -10,6 +11,18 @@ interface OrderCardProps {
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({ order, onAction, className }) => {
+  const [highlight, setHighlight] = useState(false);
+  const prevStatus = useRef(order.status);
+
+  useEffect(() => {
+    if (order.status !== prevStatus.current) {
+      setHighlight(true);
+      const timer = setTimeout(() => setHighlight(false), 2000);
+      prevStatus.current = order.status;
+      return () => clearTimeout(timer);
+    }
+  }, [order.status]);
+
   // V41 Robust Mapping Logic
   const items = Array.isArray(order.items) ? order.items : 
                 (Array.isArray(order.productList) ? order.productList.map((p: string) => ({ productName: p })) : []);
@@ -28,13 +41,21 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, onAction, className
   }
 
   return (
-    <div className={cn(
-      "bg-slate-900 text-white rounded-2xl p-6 space-y-6 shadow-2xl border transition-all relative overflow-hidden text-right",
-      order.specialOrder 
-        ? "border-red-600/50 shadow-[0_0_25px_rgba(220,38,38,0.25)]" 
-        : "border-slate-800",
-      className
-    )}>
+    <motion.div 
+      animate={highlight ? { 
+        scale: [1, 1.02, 1],
+        boxShadow: ["0px 0px 0px rgba(234, 179, 8, 0)", "0px 0px 30px rgba(234, 179, 8, 0.4)", "0px 0px 0px rgba(234, 179, 8, 0)"]
+      } : {}}
+      transition={{ duration: 0.5 }}
+      className={cn(
+        "bg-slate-900 text-white rounded-2xl p-6 space-y-6 shadow-2xl border transition-all relative overflow-hidden text-right",
+        order.specialOrder 
+          ? "border-red-600/50 shadow-[0_0_25px_rgba(220,38,38,0.25)]" 
+          : "border-slate-800",
+        highlight ? "border-yellow-500 ring-2 ring-yellow-500/20" : "",
+        className
+      )}
+    >
       {/* Structural Accents */}
       <div className="absolute top-0 right-0 w-1 h-full bg-yellow-500 opacity-50" />
       
@@ -122,6 +143,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order, onAction, className
           בצע שיבוץ/עדכון
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 };

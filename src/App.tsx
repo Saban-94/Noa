@@ -10,6 +10,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, query, orderBy, doc, getDocFromServer } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from './lib/firestore-utils';
 
+import { motion, AnimatePresence } from 'motion/react';
+
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -20,6 +22,16 @@ export default function App() {
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(window.innerWidth > 1024);
   const [rightSidebarOpen, setRightSidebarOpen] = useState(window.innerWidth > 1440);
   const [adminDrawerOpen, setAdminDrawerOpen] = useState(false);
+
+  // Responsive handle
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) setLeftSidebarOpen(false);
+      if (window.innerWidth < 1440) setRightSidebarOpen(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // V41 Identity: Fixed as Operations Manager
   const currentPersona = {
@@ -142,38 +154,45 @@ export default function App() {
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative z-10">
         
         {/* Sidebar - Siddur & Load */}
-        <aside className={cn(
-          "bg-[#0f172a] text-white border-l border-slate-800 transition-all duration-300 overflow-hidden flex flex-col shrink-0 md:static absolute inset-y-0 right-0 z-30",
-          leftSidebarOpen ? "w-80 translate-x-0" : "w-0 translate-x-full md:translate-x-0"
-        )}>
-          <div className="p-5 border-b border-white/5 bg-gradient-to-br from-slate-900 to-[#0f172a]">
-            <h2 className="text-[10px] font-black uppercase text-slate-500 tracking-[0.3em] mb-4">עומס נהגים</h2>
-            <div className="space-y-3">
-              {drivers.length > 0 ? drivers.map(d => (
-                <div key={d.id} className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/10 group hover:border-yellow-500/50 transition-all">
-                  <div className="flex items-center gap-3">
-                    <div className="size-8 rounded-full bg-slate-800 border border-white/5 overflow-hidden flex items-center justify-center font-bold text-xs">
-                       {d.name?.charAt(0)}
+        <AnimatePresence mode="wait">
+          {leftSidebarOpen && (
+            <motion.aside 
+              initial={{ x: '100%', opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '100%', opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="bg-[#0f172a] text-white border-l border-slate-800 flex flex-col shrink-0 md:relative fixed inset-y-0 right-0 z-30 w-80 shadow-2xl md:shadow-none h-full"
+            >
+              <div className="p-5 border-b border-white/5 bg-gradient-to-br from-slate-900 to-[#0f172a]">
+                <h2 className="text-[10px] font-black uppercase text-slate-500 tracking-[0.3em] mb-4">עומס נהגים</h2>
+                <div className="space-y-3">
+                  {drivers.length > 0 ? drivers.map(d => (
+                    <div key={d.id} className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/10 group hover:border-yellow-500/50 transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className="size-8 rounded-full bg-slate-800 border border-white/5 overflow-hidden flex items-center justify-center font-bold text-xs">
+                          {d.name?.charAt(0)}
+                        </div>
+                        <span className="text-xs font-black text-slate-200">{d.name}</span>
+                      </div>
+                      <div className="bg-yellow-500 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded shadow-lg">
+                        {driverLoad[d.name] || 0}
+                      </div>
                     </div>
-                    <span className="text-xs font-black text-slate-200">{d.name}</span>
-                  </div>
-                  <div className="bg-yellow-500 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded shadow-lg">
-                    {driverLoad[d.name] || 0}
-                  </div>
+                  )) : (
+                    <p className="text-[10px] text-slate-600 italic">טוען נתונים...</p>
+                  )}
                 </div>
-              )) : (
-                <p className="text-[10px] text-slate-600 italic">טוען נתונים...</p>
-              )}
-            </div>
-          </div>
+              </div>
 
-          <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-[#070b14]/50">
-            <GanttSchedule orders={orders} />
-          </div>
-        </aside>
+              <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-[#070b14]/50">
+                <GanttSchedule orders={orders} />
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
 
         {/* Center: Operational Chat */}
-        <main className="flex-1 flex flex-col min-w-0 bg-[#f1f5f9]/50 relative backdrop-blur-sm shadow-inner">
+        <main className="flex-1 flex flex-col min-w-0 bg-[#f1f5f9]/50 relative backdrop-blur-sm shadow-inner h-full overflow-hidden">
           <ChatRoom 
             orders={orders} 
             inventory={inventory} 
@@ -183,68 +202,88 @@ export default function App() {
         </main>
 
         {/* Right Sidebar: Unified Drawer Container */}
-        <aside className={cn(
-          "bg-white border-r border-slate-200 transition-all duration-300 overflow-hidden flex flex-col shrink-0 md:static absolute inset-y-0 left-0 z-30",
-          rightSidebarOpen ? "w-80 -translate-x-0" : "w-0 -translate-x-full md:translate-x-0"
-        )}>
-          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-8">
-            <div className="flex items-center gap-3 mb-2 flex-row-reverse">
-              <Box size={16} className="text-slate-400" />
-              <h2 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">מערכות תומכות</h2>
-            </div>
-            
-            <InventoryDashboard items={inventory} />
-            
-            <div className="h-px bg-slate-100"></div>
-            
-            <section className="bg-slate-50 p-5 rounded-2xl border border-slate-100 text-right">
-              <h2 className="text-[10px] font-black uppercase text-slate-400 mb-5 tracking-[0.2em]">ביצועי יום (V41)</h2>
-              <div className="space-y-4">
-                <div className="flex justify-between items-end flex-row-reverse">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">מכירות נטו</span>
-                  <span className="text-xl font-black text-slate-900 tracking-tighter">₪{inventory.length > 0 ? (48250 + inventory.length * 10).toLocaleString() : '---'}</span>
+        <AnimatePresence mode="wait">
+          {rightSidebarOpen && (
+            <motion.aside 
+              initial={{ x: '-100%', opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '-100%', opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="bg-white border-r border-slate-200 flex flex-col shrink-0 md:relative fixed inset-y-0 left-0 z-30 w-80 shadow-2xl md:shadow-none h-full"
+            >
+              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-8">
+                <div className="flex items-center gap-3 mb-2 flex-row-reverse">
+                  <Box size={16} className="text-slate-400" />
+                  <h2 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">מערכות תומכות</h2>
                 </div>
-                <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-600 w-[85%] rounded-full shadow-lg" />
-                </div>
+                
+                <InventoryDashboard items={inventory} />
+                
+                <div className="h-px bg-slate-100"></div>
+                
+                <section className="bg-slate-50 p-5 rounded-2xl border border-slate-100 text-right">
+                  <h2 className="text-[10px] font-black uppercase text-slate-400 mb-5 tracking-[0.2em]">ביצועי יום (V41)</h2>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-end flex-row-reverse">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">מכירות נטו</span>
+                      <span className="text-xl font-black text-slate-900 tracking-tighter">₪{inventory.length > 0 ? (48250 + inventory.length * 10).toLocaleString() : '---'}</span>
+                    </div>
+                    <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-600 w-[85%] rounded-full shadow-lg" />
+                    </div>
+                  </div>
+                </section>
               </div>
-            </section>
-          </div>
-        </aside>
+            </motion.aside>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Admin Drawer Overlay */}
-      {adminDrawerOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#0f172a]/95 backdrop-blur-xl" onClick={() => setAdminDrawerOpen(false)} />
-          <div className="relative w-full max-w-4xl bg-white rounded-[2rem] shadow-2xl overflow-hidden flex flex-col h-[80vh] border border-white/10">
-            <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <Database className="text-yellow-500" />
-                <h2 className="text-xl font-black tracking-tight">SabanOS DNA - מרכז נתונים</h2>
-              </div>
-              <button onClick={() => setAdminDrawerOpen(false)} className="p-2 hover:bg-white/10 rounded-full">
-                <X size={24} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-right">
-              {Object.entries(stats).map(([col, count]) => (
-                <div key={col} className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <p className="text-[10px] font-black text-slate-400 uppercase mb-1">{col.replace('_', ' ')}</p>
-                  <p className="text-xl font-black text-slate-900">{count.toLocaleString()}</p>
+      <AnimatePresence>
+        {adminDrawerOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-[#0f172a]/95 backdrop-blur-xl" 
+              onClick={() => setAdminDrawerOpen(false)} 
+            />
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="relative w-full max-w-4xl bg-white rounded-[2rem] shadow-2xl overflow-hidden flex flex-col h-[80vh] border border-white/10"
+            >
+              <div className="p-6 bg-slate-900 text-white flex justify-between items-center shrink-0">
+                <div className="flex items-center gap-3">
+                  <Database className="text-yellow-500" />
+                  <h2 className="text-xl font-black tracking-tight">SabanOS DNA - מרכז נתונים</h2>
                 </div>
-              ))}
-              <div className="bg-slate-900 text-white p-6 rounded-2xl md:col-span-2 lg:col-span-4 border border-white/10 flex flex-col justify-center items-center gap-4 text-center">
-                <Shield className="text-yellow-500" size={40} />
-                <div>
-                  <h3 className="text-lg font-black uppercase tracking-widest">SabanOS V41 - The Final Truth Node</h3>
-                  <p className="text-slate-400 text-sm font-bold">Intelligence DB & Drive DB Integrated Execution</p>
+                <button onClick={() => setAdminDrawerOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-right custom-scrollbar">
+                {Object.entries(stats).map(([col, count]) => (
+                  <div key={col} className="bg-slate-50 p-4 rounded-xl border border-slate-200 hover:border-yellow-500/30 transition-all cursor-default">
+                    <p className="text-[10px] font-black text-slate-400 uppercase mb-1">{col.replace('_', ' ')}</p>
+                    <p className="text-xl font-black text-slate-900">{count.toLocaleString()}</p>
+                  </div>
+                ))}
+                <div className="bg-slate-900 text-white p-6 rounded-2xl md:col-span-2 lg:col-span-4 border border-white/10 flex flex-col justify-center items-center gap-4 text-center">
+                  <Shield className="text-yellow-500" size={40} />
+                  <div>
+                    <h3 className="text-lg font-black uppercase tracking-widest">SabanOS V41 - The Final Truth Node</h3>
+                    <p className="text-slate-400 text-sm font-bold">Intelligence DB & Drive DB Integrated Execution</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Control Hub */}
       <div className="fixed bottom-8 left-8 flex flex-col md:flex-row gap-3 z-40">

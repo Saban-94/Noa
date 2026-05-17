@@ -45,6 +45,10 @@ export interface Order {
   driverName?: string;
   status: OrderStatus | string;
   deliveryAddress: string;
+  lat?: number;
+  lng?: number;
+  currentLat?: number;
+  currentLng?: number;
   dueDate?: string;
   date?: string;
   deliveryDate?: string;

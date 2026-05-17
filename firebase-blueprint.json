@@ -34,6 +34,8 @@
             "lng": { "type": "number" }
           }
         },
+        "currentLat": { "type": "number", "description": "Current real-time latitude" },
+        "currentLng": { "type": "number", "description": "Current real-time longitude" },
         "dueDate": { "type": "string", "format": "date-time" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" },
@@ -79,7 +81,9 @@
         "name": { "type": "string" },
         "phone": { "type": "string" },
         "status": { "type": "string", "enum": ["available", "busy", "offline"] },
-        "currentOrderId": { "type": "string" }
+        "currentOrderId": { "type": "string" },
+        "currentLat": { "type": "number" },
+        "currentLng": { "type": "number" }
       },
       "required": ["name", "status"]
     },
