@@ -22,9 +22,9 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
       id: '1',
       role: 'assistant',
       text: `<div class="space-y-4 backdrop-blur-md bg-white/80 p-6 rounded-[2.5rem] border border-[#C5A059]/20 shadow-2xl">
-        <p style="font-size: 20px; font-weight: 900;" class="text-[#1E293B] tracking-tighter">שלום ראמי אהובי, המפקד.</p>
+        <p style="font-size: 20px; font-weight: 900;" class="text-[#1E293B] tracking-tighter">שלום ראמי אהובי❤️, המפקד.</p>
         <div class="border-r-4 border-[#C5A059] bg-slate-50/50 p-6 rounded-3xl shadow-inner">
-          <p class="text-base font-bold leading-relaxed text-slate-700">כל מערכות ה-PWA Core Engine v57 מסונכרנות. 19 מסדי נתונים פעילים ב-Double Sync. איך נועה יכולה לסייע בבניין הקיסרות היום?</p>
+          <p class="text-base font-bold leading-relaxed text-slate-700">כל מערכות ה-Executive PWA & Multi-Identity Core v60 מסונכרנות. 19 מסדי נתונים פעילים ב-Parallel Sync. איך נועה יכולה לסייע בבניין הקיסרות היום?</p>
         </div>
         <div class="mt-4 pt-4 border-t border-slate-100 text-[11px] text-slate-400 font-bold signature italic">באדיבות נועה ❤️</div>
       </div>`,

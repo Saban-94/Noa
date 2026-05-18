@@ -1,4 +1,4 @@
-export const playSound = (type: 'sent' | 'received' | 'alert') => {
+export const playSound = (type: 'sent' | 'received' | 'alert' | 'gps_ping') => {
   try {
     const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
     const gainNode = audioCtx.createGain();
@@ -37,6 +37,19 @@ export const playSound = (type: 'sent' | 'received' | 'alert') => {
         gainNode.gain.exponentialRampToValueAtTime(0.01, now + i * 0.4 + 0.3);
         osc.start(now + i * 0.4);
         osc.stop(now + i * 0.4 + 0.3);
+      }
+    } else if (type === 'gps_ping') {
+      // Long pulsing alert for GPS pings
+      for (let i = 0; i < 10; i++) {
+        const osc = audioCtx.createOscillator();
+        osc.connect(gainNode);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(1000, now + i * 0.8);
+        osc.frequency.exponentialRampToValueAtTime(500, now + i * 0.8 + 0.4);
+        gainNode.gain.setValueAtTime(0.08, now + i * 0.8);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + i * 0.8 + 0.6);
+        osc.start(now + i * 0.8);
+        osc.stop(now + i * 0.8 + 0.6);
       }
     }
   } catch (e) {

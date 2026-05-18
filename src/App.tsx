@@ -41,6 +41,9 @@ export default function App() {
       allowLocalhostAsSecureOrigin: true,
     }).then(() => {
       console.log('OneSignal Initialized');
+      if (auth.currentUser) {
+        OneSignal.login(auth.currentUser.uid);
+      }
     });
   }, []);
   const [allOrders, setAllOrders] = useState<Order[]>([]);
@@ -83,10 +86,10 @@ export default function App() {
     }
   }, [activeScreen]);
 
-  // V57 Identity: Noa-Saban PWA Engine
+  // V60 Identity: Noa-Saban Executive PWA
   const currentPersona = {
     name: 'נועה',
-    role: 'מערך שליטה v57',
+    role: 'מערך שליטה v60',
     avatar: 'https://i.postimg.cc/qqWtk5qr/Gemini-Generated-Image-6z6qts6z6qts6z6q.png'
   };
 
@@ -319,7 +322,7 @@ export default function App() {
           </motion.div>
           <div className="leading-none">
             <h1 className="text-2xl font-black tracking-tighter uppercase flex items-center gap-2">
-              SabanOS <span className="bg-[#C5A059] text-[#1E293B] text-[11px] px-2 py-0.5 rounded-lg font-black tracking-widest shadow-lg shadow-[#C5A059]/20">V57</span>
+              SabanOS <span className="bg-[#C5A059] text-[#1E293B] text-[11px] px-2 py-0.5 rounded-lg font-black tracking-widest shadow-lg shadow-[#C5A059]/20">V60</span>
             </h1>
             <p className="text-[10px] uppercase tracking-[0.25em] text-[#C5A059] font-bold opacity-80 mt-1">ח.סבן חומרי בניין - ליבת ה-PWA</p>
           </div>

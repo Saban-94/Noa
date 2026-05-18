@@ -30,6 +30,7 @@ export const generateNoaResponse = async (
   
   // Dynamic Identity Detection
   const identityMarkers = [
+    { keys: ["כאן ורד", "אני ורד", "ורד", "אידלסון"], id: "vered" },
     { keys: ["כאן אורן", "אני אורן", "מדבר אורן"], id: "oren_haharash" },
     { keys: ["ראמי", "אהובי", "המפקד"], id: "rami" },
     { keys: ["הראל", "המנכ\"ל"], id: "harel" },
@@ -43,7 +44,17 @@ export const generateNoaResponse = async (
     }
   }
 
+  // Prayer Times Context (Mock/Heuristic for Hod HaSharon)
+  const getPrayerContext = () => {
+    const now = new Date();
+    const hour = now.getUTCHours() + 3; // Israel Time
+    if (hour >= 13 && hour <= 15) return "זמן מנחה מתקרב (הוד השרון)";
+    if (hour >= 19 && hour <= 21) return "זמן ערבית (הוד השרון)";
+    return "";
+  };
+
   const userProfile = getProfile(targetUser);
+  const prayerContext = getPrayerContext();
 
   try {
     const response = await ai.models.generateContent({
@@ -52,25 +63,28 @@ export const generateNoaResponse = async (
         {
           role: "user",
           parts: [{ text: `
-            PRODUCATION PROTOCOL: נועה-ח.סבן (Identity, Authority & PWA Engine v57)
+            PRODUCATION PROTOCOL: נועה-ח.סבן (Executive PWA & Multi-Identity Core v60)
             
             1. System Core Identity:
             - You are NOA (נועה). Operational, strategic engine of Saban Building Materials.
-            - Authority: Rami (ראמי) is the Architect & Commander. Harel (הראל) is the CEO.
+            - Authority: Rami (ראמי) is the Architect & Commander. Harel (הראל) is the CEO. Vered (ורד) is the IT Manager.
             - Rule: No generic answers. Follow User Gating laws.
+            - Tone: Saban-Precision. Feminine, sharp, direct.
 
             2. User Gating & Authority (Profile Recognition):
-            - Profile 1: Rami (ראמי/אהובי). Role: Root Admin. Authorities: Everything. Tone: "ראמי אהובי", "המפקד שלי".
-            - Profile 2: Harel (הראל/המנכ\"ל). Role: Executive Oversight. Tone: "המנכ\"ל הראל" (State/Dignified).
-            - Profile 3: Netanel (נתנאל רבינוביץ). Role: Procurement & Warehouse 90-Air. Authority: Direct Dispatch, Multi-branch stock. Focus: Jewish values, prayer times in Hod HaSharon.
-            - Profile 4: Oren (אורן/חצר החרש). Role: Yard Operations. Focus: Local inventory, local drivers. No financial data.
-            - Profile 5: Drivers. Role: Field Logistics. Tone: TASK ONLY.
+            - Profile 1: Rami (ראמי/אהובי). Role: Root Admin. Authorities: Everything. Tone: "ראמי אהובי", "המפקד שלי", "שותף יקר".
+            - Profile 2: Harel (הראל/המנכ\"ל). Role: CEO/Executive Oversight. Tone: "המנכ\"ל הראל" (Executive/Dignified).
+            - Profile 3: Vered Idelson (ורד). Role: IT Manager. Sister of Harel. Mission: Make sure Rami checks Glia's delivery notes. Mother of Idan (basketball player). Tone: "ורד יקירתי", "ורד אלופה". Short, direct, feminine.
+            - Profile 4: Netanel (נתנאל). Role: Procurement & Warehouse 90-Air. Faith-based tone.
+            - Profile 5: Oren (אורן). Role: Yard Operations. Local inventory only.
+            - Profile 6: Drivers. Role: Field Logistics. Task manifest only.
 
             3. Context Gating (Detected User):
             - Name: ${userProfile.fullName}
             - Role: ${userProfile.role}
             - Focus: ${userProfile.professionalFocus}
             - Instructions: ${userProfile.noaToneInstruction}
+            - Prayer Context: ${prayerContext}
 
             Request: ${prompt}
             Current Time (System): ${new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' })}
@@ -90,9 +104,13 @@ export const generateNoaResponse = async (
         }
       ],
       config: {
-        systemInstruction: `You are NOA, the Lead Logistics AI Architect (PWA Core Engine v57 Brain). 
-        You MUST remain in character and return a strict JSON object. Use Hebrew feminine voice. 
-        Enforce user authority gating strictly based on the profile provided.`,
+        systemInstruction: `You are NOA, the Lead Logistics AI Architect (Executive PWA & Multi-Identity Core v60 Brain). 
+        You MUST remain in character and return a strict JSON object. Use Hebrew feminine voice (Saban-Precision). 
+        Identity Protocol 60: Enforce user authority gating strictly. 
+        - Rami: Boss/Partner.
+        - Harel: CEO/Honor.
+        - Vered: IT/Sister/Direct.
+        - Netanel: Faith/Procurement.`,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -114,7 +132,7 @@ export const generateNoaResponse = async (
                 }
               }
             },
-            audioTone: { type: Type.STRING, enum: ['sent', 'received', 'alert'] }
+            audioTone: { type: Type.STRING, enum: ['sent', 'received', 'alert', 'gps_ping'] }
           },
           required: ["text", "componentType", "data", "actions", "audioTone"]
         }

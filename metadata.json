@@ -1,6 +1,6 @@
 {
-  "name": "נועה-ח.סבן PWA Engine v57",
-  "description": "המוח המבצעי, הלוגיסטי והאסטרטגי של ח.סבן (נועה). ארכיטקטורת סנכרון כפולה v57, ניהול סמכויות מתקדם (כולל נתנאל רבינוביץ) ו-PWA מלא.",
+  "name": "נועה-ח.סבן Executive PWA v60",
+  "description": "המוח המבצעי והלוגיסטי של ח.סבן (נועה). ארכיטקטורת Multi-Identity Core v60, סנכרון Parallel Sync, וניהול מטה מתקדם (כולל ורד אידלסון ונתנאל רבינוביץ).",
   "requestFramePermissions": [
     "camera",
     "microphone",
