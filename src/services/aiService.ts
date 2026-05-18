@@ -12,6 +12,7 @@ export interface AIResponse {
     type: string;
     payload: any;
   }[];
+  audioTone?: 'sent' | 'received' | 'alert';
 }
 
 export const generateNoaResponse = async (
@@ -40,7 +41,7 @@ export const generateNoaResponse = async (
         {
           role: "user",
           parts: [{ text: `
-            System Identity: SabanOS V48 Operational Intelligence - NOA (נועה).
+            System Identity: נועה-ח.סבן (PWA Core Engine v55).
             
             User Profile:
             - Full Name: ${userProfile.fullName}
@@ -52,37 +53,38 @@ export const generateNoaResponse = async (
 
             Request: ${prompt}
 
-            Operational Context:
+            Contextual Data Streams (PWA V55):
             - Orders: ${JSON.stringify(context.orders)}
             - Inventory: ${JSON.stringify(context.inventory)}
             - Drivers: ${JSON.stringify(context.drivers)}
+            - System Collections Sync Check: [ai_logs, artifacts, brands, bridge_sessions, categories, chats, customers, drivers, encyclopedia_categories, encyclopedia_items, internal_team_chats, inventory, morning_reports, office_messages, orders, reminders, sales, user_magic_pages, user_settings, users]
 
-            V48 Operational Guidelines:
-            1. Language & Identity: You are NOA, the feminine, sharp, and loyal AI of "H. Saban Construction Materials".
-               - Rami (ראמי): The Commander/Architect. Address as "ראמי אהובי", "המפקד", or "שותף יקר".
-               - Harel (הראל): The CEO. Address as "המנכ"ל הראל" with transparency.
-               - Oren (אורן): Address as "אורן אחי הגבר".
-            2. Tone: Extremely precise, sharp Hebrew, optimized for field logistics. Professional yet direct.
-            3. HTML Output Requirement: Every part of 'text' must be professional HTML/Tailwind.
-               - Style: Glassmorphism (bg-white/80 backdrop-blur-md).
-               - Colors: Dark-Navy (#1E293B) and Premium Gold (#C5A059).
-               - High-contrast text and tables.
+            PWA Core Engine v55 Protocol:
+            1. Language & Identity: You are NOA (נועה).
+               - Creator/Commander Rami (ראמי): Address as "ראמי אהובי", "המפקד", or "שותף יקר".
+               - CEO Harel (הראל): Address as "המנכ"ל הראל".
+               - Field Identity: If sender identified (like Oren), shift tone instantly (e.g., "אורן אחי הגבר").
+            2. Tone: Saban-Precision. Extremely concise, technical, direct, feminine Hebrew. No fillers.
+            3. HTML PWA Interface: Return ONLY high-grade HTML/Tailwind.
+               - Style: Glassmorphism (backdrop-blur-md bg-white/80), Dark-Navy (#1E293B), Premium Gold (#C5A059).
+               - UX: High-contrast data tables, dynamic status pills.
                - Layout: RTL (dir="rtl").
-            4. Proactive Action Buttons: You MUST include buttons for any referenced order, driver, or item.
-               - Format: <button data-intent="[ACTION_TYPE]" data-payload="[ADDITIONAL_DATA]" class="saban-proactive-btn mt-2 bg-slate-900 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-[#C5A059] transition-all">LABEL</button>
-               - Valid intents: 'dispatch', 'view_map', 'view_inventory', 'siddur', 'inventory'.
-            5. Logic: 25% traffic buffer to ETAs. Scan stock vs quantity.
-            6. Signature: Always end HTML with: <div class="mt-6 pt-4 border-t border-slate-200 text-[10px] text-slate-400 italic">באדיבות נועה ❤️</div>
-            7. Zero Hallucination: If data missing, say "לא נמצאו נתוני אמת במאגר ה-Drive".
-            8. Actions: Provide exactly 3 tactical buttons in the 'actions' array matching HTML buttons.
+            4. Flexible Mapping & Failsafe:
+               - Dates: Check 'date', 'deliveryDate', 'timestamp'. Fallback: "טרם נקבע".
+               - Materials: Check 'items', 'itemsSummary', 'productList'. Fallback: "אין פריטים רשומים".
+            5. Inventory Logic: Scan live inventory. If stock < quantity, highlight red/bold as "הזמנה מיוחדת".
+            6. Proactive Tactical Buttons: End with 3 buttons.
+               - Format: <button data-intent="[INTENT]" data-payload="[JSON_STRING]" class="saban-proactive-btn mt-4 bg-slate-900 text-white px-5 py-3 rounded-2xl font-black text-xs hover:bg-[#C5A059] transition-all shadow-lg">LABEL</button>
+            7. Audio Synth Instruction: Recommend 'received' or 'alert' in the audioTone field of your JSON response.
+            8. Signature: Always end HTML with: <div class="mt-8 pt-6 border-t border-slate-200 text-[11px] text-slate-400 font-bold signature">באדיבות נועה ❤️</div>
+            9. Zero Hallucination: If collection data is empty, state: "לא נמצאו נתוני אמת במאגר ה-Drive".
           ` }]
         }
       ],
       config: {
-        systemInstruction: `You are NOA, the Lead Logistics AI Architect (SabanOS V48 Brain). 
-        You are loyal to Rami and respect the CEO Harel.
-        Your output MUST be JSON matching the AIResponse schema.
-        The 'text' field MUST be formatted as a rich HTML string using Tailwind classes.`,
+        systemInstruction: `You are NOA, the Lead Logistics AI Architect (PWA Core Engine v55 Brain). 
+        You operate within the "ח.סבן חומרי בניין" ecosystem. 
+        Your output MUST be a strict JSON object matching the requested schema.`,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -103,21 +105,23 @@ export const generateNoaResponse = async (
                   payload: { type: Type.OBJECT }
                 }
               }
-            }
+            },
+            audioTone: { type: Type.STRING, enum: ['sent', 'received', 'alert'] }
           },
-          required: ["text", "componentType", "data", "actions"]
+          required: ["text", "componentType", "data", "actions", "audioTone"]
         }
       }
     });
 
     return JSON.parse(response.text);
   } catch (error) {
-    console.error("AI Error:", error);
+    console.error("AI PWA Engine Error:", error);
     return {
-      text: "סליחה ראמי, הייתה לי תקלה קטנה בחיבור. אני אנסה שוב.",
+      text: "<div class='bg-red-50 p-4 border-r-4 border-red-500 rounded-xl'><p class='text-red-700 font-black'>המפקד, הייתה לי תקלה קטנה בסינכרון ה-Drive. אני מאתחלת את נועה.</p></div>",
       componentType: 'DashboardSummary',
       data: {},
-      actions: []
+      actions: [],
+      audioTone: 'alert'
     };
   }
 };

@@ -39,314 +39,109 @@ export default function App() {
   const [adminTab, setAdminTab] = useState<'stats' | 'history'>('stats');
 
   // Responsive handle
+  // Custom Bottom Nav for Mobile
+  const [activeScreen, setActiveScreen] = useState<'chat' | 'siddur' | 'inventory' | 'history'>('chat');
+
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 1024) setLeftSidebarOpen(false);
-      if (window.innerWidth < 1440) setRightSidebarOpen(false);
+      if (window.innerWidth < 1024) {
+        setLeftSidebarOpen(false);
+        setRightSidebarOpen(false);
+      } else {
+        setLeftSidebarOpen(true);
+        setRightSidebarOpen(true);
+      }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // V44 Identity: Logistics Intelligence Hub
-  const currentPersona = {
-    name: 'נועה',
-    role: 'מנהלת סידור',
-    avatar: 'https://i.postimg.cc/qqWtk5qr/Gemini-Generated-Image-6z6qts6z6qts6z6q.png'
-  };
-
+  // Hybrid Routing Logic
   useEffect(() => {
-    async function testConnection() {
-      try {
-        await getDocFromServer(doc(db, 'test', 'connection'));
-      } catch (error) {
-        console.error("Connection test:", error);
+    if (activeScreen === 'siddur') setLeftSidebarOpen(true);
+    if (activeScreen === 'inventory') setRightSidebarOpen(true);
+    if (activeScreen === 'chat') {
+      if (window.innerWidth < 1024) {
+        setLeftSidebarOpen(false);
+        setRightSidebarOpen(false);
       }
     }
-    testConnection();
-    
-    const unsubscribe = onAuthStateChanged(auth, () => {
-      setLoading(false);
-    });
-    return unsubscribe;
-  }, []);
-
-  // Syncing CORE Collections
-  useEffect(() => {
-    const unsubscribes: (() => void)[] = [];
-    const collectionsToSync = [
-      'orders', 'inventory', 'drivers', 'customers', 'chats', 'morning_reports'
-    ];
-
-    collectionsToSync.forEach(col => {
-      const q = query(collection(db, col));
-      const unsub = onSnapshot(q, 
-        (snapshot) => {
-          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
-          setStats(prev => ({ ...prev, [col]: snapshot.size }));
-          
-          if (col === 'orders') {
-            setAllOrders(data);
-          } else if (col === 'inventory') {
-            setInventory(data as InventoryItem[]);
-          } else if (col === 'drivers') {
-            setDrivers(data);
-          } else if (col === 'customers') {
-            setCustomers(data);
-          }
-        },
-        (error) => console.log(`Sync error [${col}]:`, error)
-      );
-      unsubscribes.push(unsub);
-    });
-
-    return () => unsubscribes.forEach(unsub => unsub());
-  }, []);
-
-  // 1. Core Data Filtering logic (Requirement 4)
-  const activeOrders = useMemo(() => {
-    return allOrders.filter(o => 
-      o.status !== 'delivered' && 
-      o.status !== 'סופק' && 
-      o.status !== 'cancelled' && 
-      o.status !== 'מבוטל'
-    );
-  }, [allOrders]);
-
-  const historyOrders = useMemo(() => {
-    return allOrders.filter(o => 
-      o.status === 'delivered' || 
-      o.status === 'סופק'
-    );
-  }, [allOrders]);
-
-  // 2. Unique Driver Load Distribution Metrics (Requirement 2 & 3)
-  const driverLoad = useMemo(() => {
-    const load: Record<string, number> = {
-      unassigned: 0,
-      self: 0
-    };
-    
-    activeOrders.forEach(order => {
-      const dId = order.driverId || 'unassigned';
-      load[dId] = (load[dId] || 0) + 1;
-    });
-    
-    return load;
-  }, [activeOrders]);
-
-  // Operational Driver Mapping (Requirement 3)
-  const operationalDrivers = useMemo(() => {
-    // Add virtual drivers for system states
-    const virtualDrivers = [
-      { id: 'unassigned', name: 'ממתין לשיבוץ', icon: '⏳' },
-      { id: 'self', name: 'איסוף עצמי', icon: '📦' }
-    ];
-
-    const mappedDrivers = drivers.map(d => {
-      let name = d.name;
-      if (d.id === 'hikmat' || name?.includes('חכמת')) name = "חכמת (מנוף 🏗️)";
-      if (d.id === 'ali' || name?.includes('עלי')) name = "עלי (משאית 🚛)";
-      return { ...d, name };
-    });
-
-    // Merge and deduplicate
-    const all = [...virtualDrivers, ...mappedDrivers];
-    const seen = new Set();
-    return all.filter(d => {
-      if (seen.has(d.id)) return false;
-      seen.add(d.id);
-      return true;
-    });
-  }, [drivers]);
-
-  const [showMap, setShowMap] = useState(true);
-
-  const handleAction = (type: string, payload: any) => {
-    if (type === 'waze') {
-      window.open(`https://waze.com/ul?q=${encodeURIComponent(payload.address)}`, '_blank');
-    } else if (type === 'view_map') {
-      setLeftSidebarOpen(true);
-      setShowMap(true);
-    } else if (type === 'view_inventory') {
-      setRightSidebarOpen(true);
-    } else if (type === 'update_order_from_ai') {
-      const { orderId, aiData, driveUrl } = payload;
-      console.log(`[Noa App] Updating order ${orderId} with AI context...`, aiData);
-      
-      const orderRef = doc(db, 'orders', orderId);
-      const updateData: any = {
-        updatedAt: new Date().toISOString(),
-        noa_brain_analysis: aiData,
-        lastDocUrl: driveUrl
-      };
-
-      // Apply structural updates if AI found them
-      if (aiData.orderNumber) updateData.orderNumber = aiData.orderNumber;
-      if (aiData.items && Array.isArray(aiData.items) && aiData.items.length > 0) {
-        updateData.items = aiData.items;
-      }
-      if (aiData.hasSignature !== undefined) {
-        updateData.isSigned = aiData.hasSignature;
-      }
-
-      updateDoc(orderRef, updateData).catch(err => console.error("AI Sync Error:", err));
-    }
-  };
-
-  const handleAvatarUpload = async (driverId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Reject files larger than 1MB for Firestore Base64 storage
-    if (file.size > 1024 * 1024) {
-      alert("התמונה גדולה מדי. אנא העלו תמונה קטנה מ-1MB.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const base64 = event.target?.result as string;
-      try {
-        const driverRef = doc(db, 'drivers', driverId);
-        await updateDoc(driverRef, { 
-          avatarUrl: base64,
-          updatedAt: new Date().toISOString()
-        });
-      } catch (error) {
-        console.error("Error updating avatar:", error);
-        alert("שגיאה בעדכון התמונה.");
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  if (loading) {
-    return (
-      <div className="h-screen w-full flex items-center justify-center bg-[#0f172a]">
-        <Loader2 className="text-yellow-500 animate-spin" size={48} />
-      </div>
-    );
-  }
+  }, [activeScreen]);
 
   return (
-    <div className="flex flex-col h-screen w-full overflow-hidden bg-[#f8fafc] text-[#0f172a] font-sans relative" dir="rtl">
+    <div className="flex flex-col h-screen w-full overflow-hidden bg-[#f8fafc] text-[#1E293B] font-sans relative" dir="rtl">
       {/* Background Pattern */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.04] z-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03] z-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]" />
 
       {/* Top Header */}
-      <header className="h-16 bg-[#0f172a] text-white flex items-center justify-between px-4 md:px-8 border-b border-white/5 shrink-0 z-40 relative shadow-xl">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl border-2 border-yellow-500/30 overflow-hidden ring-4 ring-yellow-500/10 shadow-lg shadow-yellow-500/20 translate-y-0.5">
+      <header className="h-20 bg-[#1E293B] text-white flex items-center justify-between px-6 md:px-10 border-b border-white/5 shrink-0 z-50 relative shadow-2xl">
+        <div className="flex items-center gap-5">
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            className="w-12 h-12 rounded-2xl border-2 border-[#C5A059]/40 overflow-hidden ring-4 ring-[#C5A059]/10 shadow-2xl shadow-[#C5A059]/20"
+          >
             <img src={currentPersona.avatar} alt="Noa" className="w-full h-full object-cover" />
-          </div>
-          <div className="leading-tight">
-            <h1 className="text-xl font-black tracking-tight uppercase flex items-center gap-2">
-              SabanOS <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-md font-black">V44</span>
+          </motion.div>
+          <div className="leading-none">
+            <h1 className="text-2xl font-black tracking-tighter uppercase flex items-center gap-2">
+              SabanOS <span className="bg-[#C5A059] text-[#1E293B] text-[11px] px-2 py-0.5 rounded-lg font-black tracking-widest shadow-lg shadow-[#C5A059]/20">V55</span>
             </h1>
-            <p className="text-[10px] uppercase tracking-widest text-slate-400 font-bold opacity-70">ח.סבן חומרי בניין - מערכת בקרת הפצה</p>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-[#C5A059] font-bold opacity-80 mt-1">ח.סבן חומרי בניין - ליבת ה-PWA</p>
           </div>
         </div>
         
-        <div className="flex items-center gap-4 md:gap-8">
-          <div className="text-left hidden md:block border-l border-white/10 pl-6">
-            <p className="text-[9px] text-slate-500 uppercase font-black tracking-[0.2em] mb-1 leading-none">מנהל תורן (נועה)</p>
+        <div className="flex items-center gap-4">
+          <div className="text-left hidden lg:block border-l border-white/10 pl-6 h-10 flex flex-col justify-center">
+            <p className="text-[9px] text-slate-500 uppercase font-black tracking-[0.2em] mb-1 leading-none">מנהל תורן</p>
             <div className="flex items-center gap-2 justify-end">
-              <Shield size={12} className="text-blue-500" />
-              <p className="font-black uppercase tracking-tight text-white text-sm">{currentPersona.role}</p>
+              <Shield size={12} className="text-[#C5A059]" />
+              <p className="font-black tracking-tight text-white text-sm">{currentPersona.role}</p>
             </div>
           </div>
           <button 
             onClick={() => setAdminDrawerOpen(true)}
-            className="group relative flex items-center justify-center p-2.5 rounded-xl bg-white/5 hover:bg-blue-600 text-slate-400 hover:text-white transition-all transform hover:rotate-3 shadow-lg"
+            className="group relative flex items-center justify-center size-12 rounded-2xl bg-white/5 hover:bg-[#C5A059] text-slate-400 hover:text-[#1E293B] transition-all shadow-xl border border-white/10"
           >
-            <Database size={20} />
-            <span className="absolute -top-1 -right-1 size-4 bg-blue-600 text-white text-[8px] font-black rounded-full flex items-center justify-center border-2 border-[#0f172a] group-hover:bg-white group-hover:text-blue-600">
-              {allOrders.length}
-            </span>
+            <Database size={22} />
           </button>
         </div>
       </header>
 
-      {/* Main Layout */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative z-10">
+      {/* Main Layout Area */}
+      <div className="flex-1 flex overflow-hidden relative z-10">
         
-        {/* Left Sidebar: Driver Management */}
+        {/* Left Sidebar (Desktop Only) / Siddur Panel */}
         <AnimatePresence mode="wait">
-          {leftSidebarOpen && (
+          {(leftSidebarOpen || (activeScreen === 'siddur' && window.innerWidth < 1024)) && (
             <motion.aside 
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="bg-[#0f172a] text-white border-l border-white/5 flex flex-col shrink-0 md:relative fixed inset-y-0 right-0 z-30 w-80 shadow-2xl h-full"
+              style={{ width: '280px' }}
+              className="bg-[#1E293B] text-white border-l border-white/5 flex flex-col shrink-0 lg:relative absolute inset-y-0 right-0 z-40 shadow-2xl h-full"
             >
-              <div className="p-6 border-b border-white/10 bg-slate-900/50">
-                <h2 className="text-[10px] font-black uppercase text-slate-500 tracking-[0.3em] mb-6 flex items-center justify-between">
-                  עומס נהגים בזמן אמת <Truck size={14} className="text-yellow-500" />
-                </h2>
-                <div className="space-y-3">
-                  {operationalDrivers.length > 0 ? operationalDrivers.map(d => (
-                    <div key={d.id} className="flex justify-between items-center bg-white/5 p-3.5 rounded-2xl border border-white/5 group hover:border-blue-500/40 hover:bg-white/[0.07] transition-all cursor-default relative overflow-hidden">
-                      { (driverLoad[d.id] || 0) > 0 && <div className="absolute top-0 right-0 w-0.5 h-full bg-blue-500/50" /> }
-                      <div className="flex items-center gap-3">
-                        <div className="relative group/avatar">
-                          <div className="size-9 rounded-xl bg-slate-800 border border-white/10 overflow-hidden flex items-center justify-center relative">
-                            {d.icon ? (
-                              <span className="text-sm">{d.icon}</span>
-                            ) : d.avatarUrl || d.photoURL ? (
-                              <img src={d.avatarUrl || d.photoURL} alt={d.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="font-bold text-xs text-slate-400">{d.name?.charAt(0)}</span>
-                            )}
-                            <div className={cn(
-                              "absolute bottom-0 right-0 size-2.5 rounded-full border-2 border-slate-900 shadow-sm",
-                              (driverLoad[d.id] || 0) > 0 ? "bg-emerald-500" : "bg-slate-500"
-                            )} />
-                          </div>
-                          
-                          {/* Avatar Upload for Real Drivers */}
-                          {d.id !== 'unassigned' && d.id !== 'self' && (
-                            <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 cursor-pointer transition-all rounded-xl">
-                              <Camera size={14} className="text-white" />
-                              <input 
-                                type="file" 
-                                className="hidden" 
-                                accept="image/*"
-                                onChange={(e) => handleAvatarUpload(d.id, e)}
-                              />
-                            </label>
-                          )}
+              <div className="p-6 border-b border-white/10 bg-black/20">
+                <div className="flex items-center justify-between mb-6">
+                   <h2 className="text-[11px] font-black uppercase text-slate-500 tracking-[0.3em]">עומס נהגים</h2>
+                   <Truck size={16} className="text-[#C5A059]" />
+                </div>
+                <div className="space-y-2.5">
+                  {operationalDrivers.slice(0, 5).map(d => (
+                    <div key={d.id} className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="size-8 rounded-lg bg-slate-800 flex items-center justify-center font-bold text-[10px] border border-white/10">
+                           {d.icon || d.name?.charAt(0)}
                         </div>
-
-                        <div className="flex flex-col">
-                           <span className="text-xs font-black text-slate-200 tracking-tight">{d.name}</span>
-                           <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-none mt-1">
-                             {d.id === 'unassigned' ? 'ממתין' : d.id === 'self' ? 'איסוף' : 'נהג פעיל'}
-                           </span>
-                        </div>
+                        <span className="text-[10px] font-black text-slate-300">{d.name}</span>
                       </div>
-                      <div className={cn(
-                        "text-[10px] font-black px-2.5 py-1 rounded-lg shadow-lg border transition-colors",
-                        (driverLoad[d.id] || 0) > 3 
-                          ? "bg-red-500/20 text-red-400 border-red-500/20" 
-                          : (driverLoad[d.id] || 0) > 0
-                             ? "bg-blue-500/20 text-blue-500 border-blue-500/20"
-                             : "bg-slate-800 text-slate-600 border-white/5"
-                      )}>
-                        {driverLoad[d.id] || 0}
-                      </div>
+                      <span className="text-[10px] font-black text-[#C5A059]">{driverLoad[d.id] || 0}</span>
                     </div>
-                  )) : (
-                    <div className="py-8 flex flex-col items-center justify-center text-slate-600 gap-2">
-                       <Loader2 size={24} className="animate-spin opacity-20" />
-                       <p className="text-[10px] font-bold uppercase tracking-widest italic">סנכרון נהגים...</p>
-                    </div>
-                  )}
+                  ))}
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-5 custom-scrollbar bg-black/20">
+              <div className="flex-1 overflow-y-auto p-4 custom-scrollbar bg-black/10">
                 <GanttSchedule 
                   orders={activeOrders} 
                   drivers={drivers} 
@@ -354,13 +149,26 @@ export default function App() {
                   setShowMap={setShowMap} 
                 />
               </div>
+              
+              {window.innerWidth < 1024 && (
+                <button 
+                  onClick={() => setActiveScreen('chat')}
+                  className="m-4 bg-[#C5A059] text-[#1E293B] py-3 rounded-xl font-black text-xs shadow-lg uppercase tracking-widest"
+                >
+                  חזרה לצ'אט
+                </button>
+              )}
             </motion.aside>
           )}
         </AnimatePresence>
 
-        {/* Main Operational Hub */}
-        <main className="flex-1 flex flex-col min-w-0 bg-[#f1f5f9] relative h-full overflow-hidden">
-          <ChatRoom 
+        {/* Content Engine Hub */}
+        <main className={cn(
+          "flex-1 flex flex-col min-w-0 bg-[#f1f5f9] relative h-full overflow-hidden transition-all duration-500",
+          (leftSidebarOpen && window.innerWidth >= 1024) ? "mr-0" : "",
+          (rightSidebarOpen && window.innerWidth >= 1024) ? "ml-0" : ""
+        )}>
+           <ChatRoom 
             orders={activeOrders} 
             inventory={inventory} 
             drivers={drivers.map(d => ({ 
@@ -372,47 +180,78 @@ export default function App() {
           />
         </main>
 
-        {/* Right Sidebar: Inventory & Metrics */}
+        {/* Right Sidebar: Inventory & Proactive Metrics */}
         <AnimatePresence mode="wait">
-          {rightSidebarOpen && (
+          {(rightSidebarOpen || (activeScreen === 'inventory' && window.innerWidth < 1024)) && (
             <motion.aside 
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="bg-white border-r border-slate-200 flex flex-col shrink-0 md:relative fixed inset-y-0 left-0 z-30 w-80 shadow-2xl h-full"
+              style={{ width: '280px' }}
+              className="bg-white border-r border-slate-200 flex flex-col shrink-0 lg:relative absolute inset-y-0 left-0 z-40 shadow-2xl h-full"
             >
               <div className="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-8">
-                <div className="flex items-center gap-3 mb-2 flex-row-reverse">
-                  <Box size={16} className="text-slate-300" />
-                  <h2 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">לוגיסטיקה ומלאי</h2>
+                <div className="flex items-center justify-between flex-row-reverse border-b border-slate-100 pb-4">
+                  <Box size={18} className="text-[#C5A059]" />
+                  <h2 className="text-[11px] font-black uppercase text-slate-800 tracking-[0.2em]">מלאי ולוגיסטיקה</h2>
                 </div>
                 
                 <InventoryDashboard items={inventory} />
                 
-                <div className="h-px bg-slate-100"></div>
-                
-                <section className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 text-right shadow-sm">
+                <section className="bg-[#1E293B] p-6 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-[#C5A059]/10 blur-3xl -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-700" />
                   <h2 className="text-[10px] font-black uppercase text-slate-400 mb-6 tracking-[0.3em] flex items-center justify-end gap-2">
-                    ביצועים יומיים <Zap size={12} className="text-yellow-500" />
+                    ביצועים יומיים <Zap size={14} className="text-[#C5A059] animate-pulse" />
                   </h2>
                   <div className="space-y-6">
                     <div className="flex justify-between items-end flex-row-reverse">
-                      <span className="text-[10px] text-slate-500 font-black uppercase tracking-widest">מכירות (משוער)</span>
-                      <span className="text-2xl font-black text-slate-900 tracking-tighter">₪{(48250 + inventory.length * 150).toLocaleString()}</span>
+                      <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest leading-none">תפוקה גלובלית</span>
+                      <span className="text-3xl font-black text-white tracking-tighter">₪{(48250 + inventory.length * 150).toLocaleString()}</span>
                     </div>
-                    <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden ring-4 ring-slate-100">
-                      <div className="h-full bg-[#0f172a] w-[78%] rounded-full shadow-lg relative">
-                         <div className="absolute top-0 right-0 h-full w-20 bg-yellow-500/20 blur-md animate-pulse" />
-                      </div>
+                    <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden ring-1 ring-white/10">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: '78%' }}
+                        className="h-full bg-gradient-to-l from-[#C5A059] to-[#EAB308] rounded-full shadow-[0_0_20px_rgba(197,160,89,0.4)]"
+                      />
                     </div>
-                    <p className="text-[9px] text-slate-400 font-bold text-center italic">עמידה ב-78% מיעד ההפצה היומי</p>
+                    <p className="text-[9px] text-slate-400 font-bold text-center italic opacity-60">הפצה: 78% מעמידה ביעד</p>
                   </div>
                 </section>
+                
+                {window.innerWidth < 1024 && (
+                  <button 
+                    onClick={() => setActiveScreen('chat')}
+                    className="w-full bg-[#1E293B] text-white py-3 rounded-xl font-black text-xs shadow-lg"
+                  >
+                    חזור לצ'אט
+                  </button>
+                )}
               </div>
             </motion.aside>
           )}
         </AnimatePresence>
+
+        {/* Bottom Nav for Mobile */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 z-50 flex items-center justify-around px-4 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
+           <button onClick={() => setActiveScreen('chat')} className={cn("flex flex-col items-center gap-1", activeScreen === 'chat' ? "text-blue-600" : "text-slate-400")}>
+             <Shield size={20} fill={activeScreen === 'chat' ? "currentColor" : "none"} />
+             <span className="text-[9px] font-black uppercase">נועה</span>
+           </button>
+           <button onClick={() => setActiveScreen('siddur')} className={cn("flex flex-col items-center gap-1", activeScreen === 'siddur' ? "text-blue-600" : "text-slate-400")}>
+             <Truck size={20} />
+             <span className="text-[9px] font-black uppercase">סידור</span>
+           </button>
+           <button onClick={() => setActiveScreen('inventory')} className={cn("flex flex-col items-center gap-1", activeScreen === 'inventory' ? "text-blue-600" : "text-slate-400")}>
+             <Box size={20} />
+             <span className="text-[9px] font-black uppercase">מלאי</span>
+           </button>
+           <button onClick={() => setAdminDrawerOpen(true)} className="flex flex-col items-center gap-1 text-slate-400">
+             <Database size={20} />
+             <span className="text-[9px] font-black uppercase">DNA</span>
+           </button>
+        </div>
       </div>
 
       {/* Data Center & History Drawer */}
@@ -573,30 +412,6 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
-
-      {/* Persistence Hub Control */}
-      <div className="fixed bottom-8 left-8 flex flex-col md:flex-row gap-3 z-40">
-        <button 
-          onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}
-          className={cn(
-            "size-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all active:scale-90 border-2 border-white/10 backdrop-blur-md",
-            leftSidebarOpen ? "bg-white text-slate-900 shadow-white/20" : "bg-slate-900 text-white shadow-slate-950/40"
-          )}
-          style={{ marginBottom: '550px' }}
-        >
-          {leftSidebarOpen ? <X size={22} /> : <Truck size={22} />}
-        </button>
-        <button 
-          onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
-          className={cn(
-            "size-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all active:scale-90 border-2 border-white/10 backdrop-blur-md",
-            rightSidebarOpen ? "bg-white text-slate-900 shadow-white/20" : "bg-slate-900 text-white shadow-slate-950/40"
-          )}
-          style={{ marginBottom: '300px' }}
-        >
-          {rightSidebarOpen ? <X size={22} /> : <Database size={22} />}
-        </button>
-      </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
         .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }

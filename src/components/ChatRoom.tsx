@@ -20,16 +20,60 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
     {
       id: '1',
       role: 'assistant',
-      text: `<div class="space-y-4">
-        <p style="font-size: 16px; font-weight: bold;" class="text-[#1E3A8A]">שלום ראמי אהובי, המפקד.</p>
-        <div class="border-r-4 border-[#C5A059] bg-[#F8FAFC] p-4 rounded-lg shadow-sm">
-          <p style="font-family: monospace; font-style: italic;" class="text-sm">הכל מסונכרן. כל מערכות ה-SabanOS פעילות. איך אוכל לסייע לך בניהול הלוגיסטיקה היום?</p>
+      text: `<div class="space-y-4 backdrop-blur-md bg-white/80 p-6 rounded-[2rem] border border-white/20 shadow-xl">
+        <p style="font-size: 18px; font-weight: 900;" class="text-[#1E293B] tracking-tight">שלום ראמי אהובי, המפקד.</p>
+        <div class="border-r-4 border-[#C5A059] bg-slate-50/50 p-5 rounded-2xl shadow-inner">
+          <p class="text-sm font-bold leading-relaxed text-slate-700">כל מערכות ה-SabanOS V55 מסונכרנות. 19 מסדי נתונים פעילים. איך נועה יכולה לסייע בבניין הקיסרות היום?</p>
         </div>
-        <p style="border-right: 2px solid #b62b08;" class="text-[10px] text-slate-400 italic pr-2">באדיבות נועה ❤️</p>
+        <div class="mt-4 pt-4 border-t border-slate-100 text-[11px] text-slate-400 font-bold signature italic">באדיבות נועה ❤️</div>
       </div>`,
       timestamp: Date.now()
     }
   ]);
+
+  // Web Audio Synthesizer
+  const playSound = (type: 'sent' | 'received' | 'alert') => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+
+      if (type === 'sent') {
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, now);
+        oscillator.frequency.exponentialRampToValueAtTime(440, now + 0.1);
+        gainNode.gain.setValueAtTime(0.1, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        oscillator.start(now);
+        oscillator.stop(now + 0.1);
+      } else if (type === 'received') {
+        oscillator.type = 'triangle';
+        oscillator.frequency.setValueAtTime(440, now);
+        oscillator.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+        gainNode.gain.setValueAtTime(0.1, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        oscillator.start(now);
+        oscillator.stop(now + 0.15);
+      } else if (type === 'alert') {
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(220, now);
+        oscillator.frequency.setValueAtTime(440, now + 0.1);
+        oscillator.frequency.setValueAtTime(220, now + 0.2);
+        gainNode.gain.setValueAtTime(0.05, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+        oscillator.start(now);
+        oscillator.stop(now + 0.3);
+      }
+    } catch (e) {
+      console.warn("Audio Context failed", e);
+    }
+  };
+
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
@@ -186,6 +230,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsTyping(true);
+    playSound('sent');
 
     const aiResponse = await generateNoaResponse(input, { orders, inventory, drivers, user: auth.currentUser?.displayName || 'Rami' });
     
@@ -207,6 +252,12 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
       ...aiResponse,
       timestamp: Date.now()
     }]);
+    
+    if (aiResponse.audioTone) {
+      playSound(aiResponse.audioTone as any);
+    } else {
+      playSound('received');
+    }
     
     setIsTyping(false);
   };
