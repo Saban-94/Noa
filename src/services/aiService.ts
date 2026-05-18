@@ -5,7 +5,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export interface AIResponse {
   text: string;
-  componentType: 'OrderInfo' | 'OrderList' | 'InventoryAlert' | 'DriverAssignment' | 'DashboardSummary' | 'PlanUpdate';
+  componentType: 'OrderInfo' | 'OrderList' | 'InventoryAlert' | 'DriverAssignment' | 'DashboardSummary' | 'PlanUpdate' | 'Warehouse90Air';
   data: any;
   actions: {
     label: string;
@@ -27,9 +27,20 @@ export const generateNoaResponse = async (
   // 1. Context Gating
   let targetUser = context.user;
   const lowerPrompt = prompt.toLowerCase();
-  const orenIdentifiers = ["כאן אורן", "אני אורן", "מדבר אורן", "זה אורן", "אורן החרש"];
-  if (orenIdentifiers.some(id => lowerPrompt.includes(id))) {
-    targetUser = "oren_haharash";
+  
+  // Dynamic Identity Detection
+  const identityMarkers = [
+    { keys: ["כאן אורן", "אני אורן", "מדבר אורן"], id: "oren_haharash" },
+    { keys: ["ראמי", "אהובי", "המפקד"], id: "rami" },
+    { keys: ["הראל", "המנכ\"ל"], id: "harel" },
+    { keys: ["נתנאל", "רבינוביץ", "הרכש"], id: "netanel" }
+  ];
+
+  for (const marker of identityMarkers) {
+    if (marker.keys.some(k => lowerPrompt.includes(k))) {
+      targetUser = marker.id;
+      break;
+    }
   }
 
   const userProfile = getProfile(targetUser);
@@ -41,7 +52,7 @@ export const generateNoaResponse = async (
         {
           role: "user",
           parts: [{ text: `
-            PRODUCATION PROTOCOL: נועה-ח.סבן (Identity, Authority & PWA Engine v56)
+            PRODUCATION PROTOCOL: נועה-ח.סבן (Identity, Authority & PWA Engine v57)
             
             1. System Core Identity:
             - You are NOA (נועה). Operational, strategic engine of Saban Building Materials.
@@ -49,10 +60,11 @@ export const generateNoaResponse = async (
             - Rule: No generic answers. Follow User Gating laws.
 
             2. User Gating & Authority (Profile Recognition):
-            - Profile 1: Rami (ראמי/המפקד). Role: Root Admin. Authorities: Everything. Tone: "ראמי אהובי", "המפקד שלי", "שותף יקר".
-            - Profile 2: Harel (הראל/המנכ"ל). Role: Executive Oversight. Tone: "המנכ"ל הראל" (State/Dignified).
-            - Profile 3: Oren (אורן/חצר החרש). Role: Yard Operations. Tone: "אורן אחי הגבר". Focus: Inventory, logistics. No financial/profitability data allowed.
-            - Profile 4: Drivers (Hikmat, Ali, Khaled). Role: Field Logistics. Tone: Direct, task-focused only. manifest/tasks/status only.
+            - Profile 1: Rami (ראמי/אהובי). Role: Root Admin. Authorities: Everything. Tone: "ראמי אהובי", "המפקד שלי".
+            - Profile 2: Harel (הראל/המנכ\"ל). Role: Executive Oversight. Tone: "המנכ\"ל הראל" (State/Dignified).
+            - Profile 3: Netanel (נתנאל רבינוביץ). Role: Procurement & Warehouse 90-Air. Authority: Direct Dispatch, Multi-branch stock. Focus: Jewish values, prayer times in Hod HaSharon.
+            - Profile 4: Oren (אורן/חצר החרש). Role: Yard Operations. Focus: Local inventory, local drivers. No financial data.
+            - Profile 5: Drivers. Role: Field Logistics. Tone: TASK ONLY.
 
             3. Context Gating (Detected User):
             - Name: ${userProfile.fullName}
@@ -61,6 +73,8 @@ export const generateNoaResponse = async (
             - Instructions: ${userProfile.noaToneInstruction}
 
             Request: ${prompt}
+            Current Time (System): ${new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' })}
+            Location Context: Hod HaSharon (נתנאל), Yard Elad (אורן), Headquarters (ראמי/הראל).
 
             4. Parallel Sync Protocol (Live Streams):
             - Master DB (Read Only): artifacts/ai-studio-cc5d2687-b402-4b97-b808-5ba700689e0e/public/data/
@@ -76,7 +90,7 @@ export const generateNoaResponse = async (
         }
       ],
       config: {
-        systemInstruction: `You are NOA, the Lead Logistics AI Architect (PWA Core Engine v56 Brain). 
+        systemInstruction: `You are NOA, the Lead Logistics AI Architect (PWA Core Engine v57 Brain). 
         You MUST remain in character and return a strict JSON object. Use Hebrew feminine voice. 
         Enforce user authority gating strictly based on the profile provided.`,
         responseMimeType: "application/json",
@@ -86,7 +100,7 @@ export const generateNoaResponse = async (
             text: { type: Type.STRING },
             componentType: { 
               type: Type.STRING, 
-              enum: ['OrderInfo', 'OrderList', 'InventoryAlert', 'DriverAssignment', 'DashboardSummary', 'PlanUpdate'] 
+              enum: ['OrderInfo', 'OrderList', 'InventoryAlert', 'DriverAssignment', 'DashboardSummary', 'PlanUpdate', 'Warehouse90Air'] 
             },
             data: { type: Type.OBJECT },
             actions: {

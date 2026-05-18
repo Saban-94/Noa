@@ -29,9 +29,20 @@ import { useRef } from 'react';
 
 import { handleFirestoreError, OperationType } from './lib/errorHandling';
 import { playSound } from './lib/audioService';
+import OneSignal from 'react-onesignal';
 
 export default function App() {
   const [loading, setLoading] = useState(true);
+
+  // Initialize OneSignal (PWA Engine v57)
+  useEffect(() => {
+    OneSignal.init({
+      appId: '06fa3292-cfc4-42e4-a64a-d629e58ec9b3',
+      allowLocalhostAsSecureOrigin: true,
+    }).then(() => {
+      console.log('OneSignal Initialized');
+    });
+  }, []);
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
@@ -72,10 +83,10 @@ export default function App() {
     }
   }, [activeScreen]);
 
-  // V55 Identity: Logistics Intelligence Hub
+  // V57 Identity: Noa-Saban PWA Engine
   const currentPersona = {
     name: 'נועה',
-    role: 'מנהלת סידור',
+    role: 'מערך שליטה v57',
     avatar: 'https://i.postimg.cc/qqWtk5qr/Gemini-Generated-Image-6z6qts6z6qts6z6q.png'
   };
 
@@ -179,7 +190,7 @@ export default function App() {
   useEffect(() => {
     const currentOverloaded = new Set<string>();
     Object.entries(driverLoad).forEach(([driverId, count]) => {
-      if (count > 3 && driverId !== 'unassigned' && driverId !== 'self') {
+      if ((count as number) > 3 && driverId !== 'unassigned' && driverId !== 'self') {
         currentOverloaded.add(driverId);
       }
     });
@@ -308,7 +319,7 @@ export default function App() {
           </motion.div>
           <div className="leading-none">
             <h1 className="text-2xl font-black tracking-tighter uppercase flex items-center gap-2">
-              SabanOS <span className="bg-[#C5A059] text-[#1E293B] text-[11px] px-2 py-0.5 rounded-lg font-black tracking-widest shadow-lg shadow-[#C5A059]/20">V55</span>
+              SabanOS <span className="bg-[#C5A059] text-[#1E293B] text-[11px] px-2 py-0.5 rounded-lg font-black tracking-widest shadow-lg shadow-[#C5A059]/20">V57</span>
             </h1>
             <p className="text-[10px] uppercase tracking-[0.25em] text-[#C5A059] font-bold opacity-80 mt-1">ח.סבן חומרי בניין - ליבת ה-PWA</p>
           </div>
@@ -523,7 +534,7 @@ export default function App() {
                     <Database size={24} strokeWidth={3} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black tracking-tight leading-none mb-1">SabanOS DNA v56 - מרכז נתונים</h2>
+                    <h2 className="text-2xl font-black tracking-tight leading-none mb-1">SabanOS DNA v57 - מרכז נתונים</h2>
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Data Integrity & Historical Manifests</p>
                   </div>
                 </div>
@@ -568,7 +579,7 @@ export default function App() {
                       <div className="absolute inset-0 bg-gradient-to-tr from-yellow-500/10 via-transparent to-blue-500/5 opacity-50" />
                       <Shield className="text-yellow-500 relative z-10" size={56} strokeWidth={1.5} />
                       <div className="relative z-10">
-                        <h3 className="text-2xl font-black uppercase tracking-tight mb-2">Noa-Saban PWA Engine v56 - Intelligence Engine</h3>
+                        <h3 className="text-2xl font-black uppercase tracking-tight mb-2">Noa-Saban PWA Engine v57 - Intelligence Engine</h3>
                         <p className="text-slate-400 text-sm font-bold max-w-xl mx-auto leading-relaxed shadow-sm">
                           כל הנתונים המוצגים מסונכרנים בזמן אמת מול ליבת ה-DNA של ח.סבן חומרי בניין. 
                           המערכת מנהלת כרגע {allOrders.length} תיעודים לוגיסטיים מלאים.

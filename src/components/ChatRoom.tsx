@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, Menu, Shield, Loader2, Paperclip } from 'lucide-react';
+import { Send, Menu, Shield, Loader2, Paperclip, Zap } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { generateNoaResponse, AIResponse } from '../services/aiService';
 import { OrderCard } from './OrderCard';
@@ -24,7 +24,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
       text: `<div class="space-y-4 backdrop-blur-md bg-white/80 p-6 rounded-[2.5rem] border border-[#C5A059]/20 shadow-2xl">
         <p style="font-size: 20px; font-weight: 900;" class="text-[#1E293B] tracking-tighter">שלום ראמי אהובי, המפקד.</p>
         <div class="border-r-4 border-[#C5A059] bg-slate-50/50 p-6 rounded-3xl shadow-inner">
-          <p class="text-base font-bold leading-relaxed text-slate-700">כל מערכות ה-PWA Core Engine v56 מסונכרנות. 19 מסדי נתונים פעילים ב-Double Sync. איך נועה יכולה לסייע בבניין הקיסרות היום?</p>
+          <p class="text-base font-bold leading-relaxed text-slate-700">כל מערכות ה-PWA Core Engine v57 מסונכרנות. 19 מסדי נתונים פעילים ב-Double Sync. איך נועה יכולה לסייע בבניין הקיסרות היום?</p>
         </div>
         <div class="mt-4 pt-4 border-t border-slate-100 text-[11px] text-slate-400 font-bold signature italic">באדיבות נועה ❤️</div>
       </div>`,
@@ -32,7 +32,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
     }
   ]);
 
-  // Web Audio Synthesizer (V56 Protocol)
+  // Web Audio Synthesizer (V57 Protocol)
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
@@ -298,11 +298,11 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
                 msg.role === 'user' ? "items-end text-right" : "items-start text-right"
               )}>
                 {msg.role === 'user' ? (
-                  <div className="bg-blue-600 text-white p-4 rounded-2xl rounded-tr-none text-sm font-medium shadow-md">
+                  <div className="bg-blue-600 text-white p-4 rounded-2xl rounded-tr-none text-sm font-bold shadow-md">
                     {msg.text}
                   </div>
                 ) : (
-                  <div className="bg-white border border-slate-200 p-5 rounded-2xl rounded-tl-none shadow-sm text-sm leading-relaxed text-slate-800">
+                  <div className="bg-white border border-slate-200 p-5 rounded-2xl rounded-tl-none shadow-sm text-sm leading-relaxed text-slate-800 font-bold">
                     <div dangerouslySetInnerHTML={{ __html: msg.text }} />
                     
                     {/* Render AI Component if exists */}
@@ -339,6 +339,65 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
                             />
                           ))}
                         </div>
+                      </div>
+                    )}
+
+                    {msg.componentType === 'InventoryAlert' && msg.data?.items && (
+                      <div className="mt-5 pt-5 border-t border-slate-100">
+                         <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl">
+                            <h4 className="text-xs font-black text-amber-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                               🔔 התראת מלאי חריגה
+                            </h4>
+                            <div className="space-y-2">
+                               {msg.data.items.map((item: any, i: number) => (
+                                  <div key={i} className="flex justify-between items-center bg-white/50 p-2.5 rounded-xl border border-amber-100">
+                                     <span className="text-sm font-bold text-slate-700">{item.name}</span>
+                                     <span className="text-xs font-black text-amber-600">{item.quantity} {item.unit || 'יח\''}</span>
+                                  </div>
+                               ))}
+                            </div>
+                         </div>
+                      </div>
+                    )}
+
+                    {msg.componentType === 'Warehouse90Air' && msg.data && (
+                      <div className="mt-5 pt-5 border-t border-slate-100">
+                        <div className="bg-sky-50 border border-sky-200 p-5 rounded-[2rem] shadow-sm">
+                          <h4 className="font-black text-sky-800 text-sm mb-3 flex items-center gap-2">
+                             <span className="p-2 bg-sky-500 text-white rounded-xl shadow-lg shadow-sky-500/20"><Zap size={16} /></span>
+                             מחסן 90 - פקודת אוויר (Direct Dispatch)
+                          </h4>
+                          <div className="space-y-3">
+                             <div className="flex justify-between items-center text-xs font-bold text-sky-700 bg-white/40 p-2 rounded-xl">
+                                <span>ספק:</span>
+                                <span className="text-sky-900">{msg.data.vendor || 'מחסן 90'}</span>
+                             </div>
+                             <div className="flex justify-between items-center text-xs font-bold text-sky-700 bg-white/40 p-2 rounded-xl">
+                                <span>יעד פריקה:</span>
+                                <span className="text-sky-900">{msg.data.destination || 'לקוח קצה'}</span>
+                             </div>
+                             <div className="p-3 bg-white/80 rounded-2xl text-[11px] font-bold text-sky-600 border border-sky-100 leading-relaxed italic">
+                                {msg.data.notes || 'שליחה ישירה מהספק ללא מעבר פיזי במחסני ח.סבן. סינכרון DNA הושלם.'}
+                             </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {msg.componentType === 'DashboardSummary' && msg.data && (
+                      <div className="mt-5 pt-5 border-t border-slate-100">
+                         <div className="bg-slate-900 text-white p-6 rounded-[2.5rem] shadow-2xl border border-white/5 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 blur-3xl" />
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">סיכום תפעולי - נועה המוח</h4>
+                            <div className="grid grid-cols-2 gap-4">
+                               {Object.entries(msg.data).map(([k, v]: [string, any]) => (
+                                  <div key={k} className="bg-white/5 p-3 rounded-2xl border border-white/5">
+                                     <p className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter mb-1">{k}</p>
+                                     <p className="text-lg font-black text-yellow-500 tracking-tight">{String(v)}</p>
+                                  </div>
+                               ))}
+                            </div>
+                         </div>
                       </div>
                     )}
 

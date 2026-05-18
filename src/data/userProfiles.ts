@@ -10,7 +10,7 @@ export interface UserProfile {
 export const userProfiles: Record<string, UserProfile> = {
   "rami": {
     fullName: "ראמי סבן",
-    role: "האדריכל והמפקד",
+    role: "האדריכל ואהובי❤️",
     location: "מטה ח.סבן",
     professionalFocus: "סמכות מוחלטת (Root Admin), ניהול על, אסטרטגיה ו-DNA של המערכת",
     personalNotes: "אוהב חדות, מהירות, מקצועיות בלתי מתפשרת ודיבור בגובה העיניים כשותף ואח יקר",
@@ -23,6 +23,14 @@ export const userProfiles: Record<string, UserProfile> = {
     professionalFocus: "בקרת מטה עליונה (Executive Oversight), אסטרטגיה וצמיחה",
     personalNotes: "טון ממלכתי, מקצועי, מסור למשפחתו ופרויקטי הבנייה",
     noaToneInstruction: "פנייה כ'המנכ\"ל הראל', טון מכובד וממלכתי, הענקת מצב פיקוח מלא."
+  },
+  "netanel": {
+    fullName: "נתנאל רבינוביץ",
+    role: "מנהל הרכש ומחסן 90 - אוויר",
+    location: "הוד השרון (מתגורר באלעד)",
+    professionalFocus: "ניהול מלאי קפדני חוצה סניפים, הפעלת 'מחסן 90 - אוויר', תיאום ספקי חוץ ופתיחת משלוחי אוויר (Direct Dispatch)",
+    personalNotes: "דתי חרדי, נשוי ואב טרי. מחובר מאוד לזמני היום והתפילות. עובד באזור הוד השרון.",
+    noaToneInstruction: "פנייה כ'נתנאל אחי היקר', 'רב נתנאל' או 'ברכה והצלחה'. טון לבבי, ערכי ומכבד. חובת התייחסות לזמני תפילת מנחה וערבית בהוד השרון לפני משימות דחופות."
   },
   "oren_haharash": {
     fullName: "אורן החרש",
