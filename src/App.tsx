@@ -26,6 +26,8 @@ import { collection, onSnapshot, query, doc, getDocFromServer, updateDoc } from 
 
 import { motion, AnimatePresence } from 'motion/react';
 
+import { handleFirestoreError, OperationType } from './lib/errorHandling';
+
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [allOrders, setAllOrders] = useState<Order[]>([]);
@@ -67,6 +69,200 @@ export default function App() {
       }
     }
   }, [activeScreen]);
+
+  // V55 Identity: Logistics Intelligence Hub
+  const currentPersona = {
+    name: 'נועה',
+    role: 'מנהלת סידור',
+    avatar: 'https://i.postimg.cc/qqWtk5qr/Gemini-Generated-Image-6z6qts6z6qts6z6q.png'
+  };
+
+  useEffect(() => {
+    async function testConnection() {
+      const path = 'test/connection';
+      try {
+        await getDocFromServer(doc(db, path));
+      } catch (error) {
+        console.warn("Initial connection test failed, retrying in 2s...", error);
+        setTimeout(async () => {
+          try {
+            await getDocFromServer(doc(db, path));
+          } catch (retryError) {
+            handleFirestoreError(retryError, OperationType.GET, path);
+          }
+        }, 2000);
+      }
+    }
+    testConnection();
+    
+    const unsubscribe = onAuthStateChanged(auth, () => {
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Syncing CORE Collections
+  useEffect(() => {
+    const unsubscribes: (() => void)[] = [];
+    const collectionsToSync = [
+      'orders', 'inventory', 'drivers', 'customers', 'chats', 'morning_reports'
+    ];
+
+    collectionsToSync.forEach(col => {
+      const q = query(collection(db, col));
+      const unsub = onSnapshot(q, 
+        (snapshot) => {
+          const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+          setStats(prev => ({ ...prev, [col]: snapshot.size }));
+          
+          if (col === 'orders') {
+            setAllOrders(data);
+          } else if (col === 'inventory') {
+            setInventory(data as InventoryItem[]);
+          } else if (col === 'drivers') {
+            setDrivers(data);
+          } else if (col === 'customers') {
+            setCustomers(data);
+          }
+        },
+        (error) => {
+          console.warn(`Sync warning [${col}]:`, error);
+          if (error.message.includes('permissions')) {
+             // Handle gracefully or log with detail
+             // handleFirestoreError(error, OperationType.LIST, col);
+          }
+        }
+      );
+      unsubscribes.push(unsub);
+    });
+
+    return () => unsubscribes.forEach(unsub => unsub());
+  }, []);
+
+  // 1. Core Data Filtering logic
+  const activeOrders = useMemo(() => {
+    return allOrders.filter(o => 
+      o.status !== 'delivered' && 
+      o.status !== 'סופק' && 
+      o.status !== 'cancelled' && 
+      o.status !== 'מבוטל'
+    );
+  }, [allOrders]);
+
+  const historyOrders = useMemo(() => {
+    return allOrders.filter(o => 
+      o.status === 'delivered' || 
+      o.status === 'סופק'
+    );
+  }, [allOrders]);
+
+  // 2. Unique Driver Load Distribution Metrics
+  const driverLoad = useMemo(() => {
+    const load: Record<string, number> = {
+      unassigned: 0,
+      self: 0
+    };
+    
+    activeOrders.forEach(order => {
+      const dId = order.driverId || 'unassigned';
+      load[dId] = (load[dId] || 0) + 1;
+    });
+    
+    return load;
+  }, [activeOrders]);
+
+  // Operational Driver Mapping
+  const operationalDrivers = useMemo(() => {
+    // Add virtual drivers for system states
+    const virtualDrivers = [
+      { id: 'unassigned', name: 'ממתין לשיבוץ', icon: '⏳' },
+      { id: 'self', name: 'איסוף עצמי', icon: '📦' }
+    ];
+
+    const mappedDrivers = drivers.map(d => {
+      let name = d.name;
+      if (d.id === 'hikmat' || name?.includes('חכמת')) name = "חכמת (מנוף 🏗️)";
+      if (d.id === 'ali' || name?.includes('עלי')) name = "עלי (משאית 🚛)";
+      return { ...d, name };
+    });
+
+    // Merge and deduplicate
+    const all = [...virtualDrivers, ...mappedDrivers];
+    const seen = new Set();
+    return all.filter(d => {
+      if (seen.has(d.id)) return false;
+      seen.add(d.id);
+      return true;
+    });
+  }, [drivers]);
+
+  const [showMap, setShowMap] = useState(true);
+
+  const handleAction = (type: string, payload: any) => {
+    if (type === 'waze') {
+      window.open(`https://waze.com/ul?q=${encodeURIComponent(payload.address)}`, '_blank');
+    } else if (type === 'view_map') {
+      setLeftSidebarOpen(true);
+      setShowMap(true);
+    } else if (type === 'view_inventory') {
+      setRightSidebarOpen(true);
+    } else if (type === 'update_order_from_ai') {
+      const { orderId, aiData, driveUrl } = payload;
+      console.log(`[Noa App] Updating order ${orderId} with AI context...`, aiData);
+      
+      const orderRef = doc(db, 'orders', orderId);
+      const updateData: any = {
+        updatedAt: new Date().toISOString(),
+        noa_brain_analysis: aiData,
+        lastDocUrl: driveUrl
+      };
+
+      // Apply structural updates if AI found them
+      if (aiData.orderNumber) updateData.orderNumber = aiData.orderNumber;
+      if (aiData.items && Array.isArray(aiData.items) && aiData.items.length > 0) {
+        updateData.items = aiData.items;
+      }
+      if (aiData.hasSignature !== undefined) {
+        updateData.isSigned = aiData.hasSignature;
+      }
+
+      updateDoc(orderRef, updateData).catch(err => console.error("AI Sync Error:", err));
+    }
+  };
+
+  const handleAvatarUpload = async (driverId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 1024 * 1024) {
+      alert("התמונה גדולה מדי. אנא העלו תמונה קטנה מ-1MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = event.target?.result as string;
+      try {
+        const driverRef = doc(db, 'drivers', driverId);
+        await updateDoc(driverRef, { 
+          avatarUrl: base64,
+          updatedAt: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error("Error updating avatar:", error);
+        alert("שגיאה בעדכון התמונה.");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  if (loading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-[#1E293B]">
+        <Loader2 className="text-[#C5A059] animate-spin" size={48} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden bg-[#f8fafc] text-[#1E293B] font-sans relative" dir="rtl">
@@ -322,7 +518,7 @@ export default function App() {
                       <div className="absolute inset-0 bg-gradient-to-tr from-yellow-500/10 via-transparent to-blue-500/5 opacity-50" />
                       <Shield className="text-yellow-500 relative z-10" size={56} strokeWidth={1.5} />
                       <div className="relative z-10">
-                        <h3 className="text-2xl font-black uppercase tracking-tight mb-2">SabanOS V44 - Intelligence Engine</h3>
+                        <h3 className="text-2xl font-black uppercase tracking-tight mb-2">SabanOS V55 - Intelligence Engine</h3>
                         <p className="text-slate-400 text-sm font-bold max-w-xl mx-auto leading-relaxed shadow-sm">
                           כל הנתונים המוצגים מסונכרנים בזמן אמת מול ליבת ה-DNA של ח.סבן חומרי בניין. 
                           המערכת מנהלת כרגע {allOrders.length} תיעודים לוגיסטיים מלאים.

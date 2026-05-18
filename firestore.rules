@@ -6,12 +6,15 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Connection Test
+    // 1. Connection Test (Allow public read for health check)
+    match /test/connection {
+      allow read: if true;
+    }
     match /test/{id} {
       allow read: if true;
     }
 
-    // 3. Primitives & Helpers
+    // 2. Primitives & Helpers
     function isSignedIn() { return request.auth != null; }
     function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
     function incoming() { return request.resource.data; }
