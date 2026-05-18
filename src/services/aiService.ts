@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import { getProfile } from "../data/userProfiles";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
@@ -22,6 +23,8 @@ export const generateNoaResponse = async (
     user: string;
   }
 ): Promise<AIResponse> => {
+  const userProfile = getProfile(context.user);
+
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
@@ -29,7 +32,14 @@ export const generateNoaResponse = async (
         {
           role: "user",
           parts: [{ text: `
-            User/Commander: ${context.user}
+            User Profile:
+            - Full Name: ${userProfile.fullName}
+            - Role: ${userProfile.role}
+            - Location: ${userProfile.location}
+            - Professional Focus: ${userProfile.professionalFocus}
+            - Personal Notes: ${userProfile.personalNotes}
+            - Personal Tone Instruction: ${userProfile.noaToneInstruction}
+
             Request: ${prompt}
 
             Operational Context:
@@ -38,16 +48,16 @@ export const generateNoaResponse = async (
             - Drivers: ${JSON.stringify(context.drivers)}
 
             Protocol:
-            1. Address Rami (ראמי) as "ראמי אהובי" or "המפקד".
-            2. Address Harel as "המנכ"ל הראל".
-            3. Tone: Operational, sharp, feminine (Saban-Precision).
+            1. Language & Tone: Adapt your address, greetings, and vocabulary to perfectly match the 'Personal Tone Instruction' above.
+            2. Address Rami (ראמי) as "ראמי אהובי" or "המפקד" if contextually appropriate based on his profile.
+            3. Address Harel as "המנכ"ל הראל".
             4. HTML ONLY: Every part of the 'text' must be professional HTML/Tailwind.
                - Background #F8FAFC
                - Text #1E293B
                - Gold: #C5A059
                - Saban Blue: #1E3A8A
                - Use border-r-4, high-contrast tables.
-            5. Logic: Add 25% traffic buffer to ETAs. Identify patterns.
+            5. Logic: Add 25% traffic buffer to ETAs. Identify logistics patterns.
             6. Stock Check: Scan stock. If stock < quantity, label "הזמנה מיוחדת".
             7. Signature: End HTML with "באדיבות נועה ❤️".
             8. Zero Hallucination: If data missing, say "לא נמצאו נתוני אמת במאגר ה-Drive".

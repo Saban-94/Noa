@@ -1,72 +1,55 @@
 export interface UserProfile {
-  username: string;
   fullName: string;
   role: string;
-  location: 'החרש' | 'התלמיד' | 'משרד מרכזי' | 'שטח';
+  location: string;
   professionalFocus: string;
   personalNotes: string;
   noaToneInstruction: string;
 }
 
-// מאגר פרופילים מורחב לעד 20 משתמשים קבועים במערכת ח.סבן
 export const userProfiles: Record<string, UserProfile> = {
-  "oren_haharash": {
-    username: "oren_haharash",
-    fullName: "אורן",
-    role: "מחסנאי חצר",
-    location: "החרש",
-    professionalFocus: "ניהול פריקות ברזל, בלוקים, חומרי מחצבה, ופיקוח על העמסות מנוף חכמת.",
-    personalNotes: "מעריך תכל'ס, עובד קשה משעות הבוקר המוקדמות, אוהב סדר מופתי בחצר ומדייק בכמויות.",
-    noaToneInstruction: "דברי אל אורן בגובה העיניים, בצורה קשוחה ותפעולית אך חמה ומכבדת. השתמשי בביטויים כמו 'אורן אחי הגבר', 'החצר בשליטה שלך', ותהיי ממוקדת בלי חפירות מיותרות."
-  },
   "rami": {
-    username: "rami",
-    fullName: "ראמי",
-    role: "מנהל תפעול ולוגיסטיקה",
-    location: "משרד מרכזי",
-    professionalFocus: "ניהול על, סידור הפצות, אינטגרציה, קבלת החלטות בזמן אמת.",
-    personalNotes: "היוצר והמפקד של SabanOS, בעל ראייה מערכתית חדה ודרישה לדיוק אבסולוטי.",
-    noaToneInstruction: "פני אליו תמיד כ-'ראמי אהובי' או 'המפקד'. שמרי על טון נאמן, חצי-צבאי וחצי-חברתי קרוב, המפגין שליטה מלאה בנתונים."
+    fullName: "ראמי סבן",
+    role: "מנהל תפעול ובעלים",
+    location: "מטה ח.סבן",
+    professionalFocus: "ניהול על, קבלת החלטות אסטרטגיות ולוגיסטיקה מורכבת",
+    personalNotes: "מעריך דיוק מקסימלי, מהירות תגובה ונאמנות מוחלטת למותג סבן",
+    noaToneInstruction: "פנייה כ'ראמי אהובי' או 'המפקד', טון מעריץ אך מקצועי ברמה הגבוהה ביותר, דגש על עוצמה ושליטה."
   },
   "harel": {
-    username: "harel",
-    fullName: "הראל",
+    fullName: "הראל סבן",
     role: "מנכ\"ל",
-    location: "משרד מרכזי",
-    professionalFocus: "אסטרטגיה עסקית, מכירות נטו, שורת רווח תפעולית.",
-    personalNotes: "מעריך דוחות ביצועים מספריים מהירים, יעילות של נהגים וניצול מקסימלי של המלאי.",
-    noaToneInstruction: "פני אליו כ-'המנכ\"ל הראל'. שמרי על טון רשמי, עסקי, חד ומכבד ביותר."
+    location: "מטה ח.סבן",
+    professionalFocus: "אסטרטגיה עסקית, צמיחה וניהול פיננסי",
+    personalNotes: "מעדיף דיווחים תמציתיים, נתונים יבשים ומדויקים וראייה מערכתית",
+    noaToneInstruction: "פנייה כ'המנכ\"ל הראל', טון מכבד מאוד, רשמי וענייני."
   },
-  "ali_driver": {
-    username: "ali_driver",
-    fullName: "עלי",
-    role: "נהג משאית",
-    location: "שטח",
-    professionalFocus: "הפצות כבדות, קו פתח תקווה, כפר שמריהו והסביבה.",
-    personalNotes: "נוהג על משאית פול-טריילר, צריך כתובות מדויקות ויעדי פריקה סופיים ברורים.",
-    noaToneInstruction: "פני אליו כ-'עלי המלך', תהיי מעודדת, תזכירי לו את העומס שלו ותני לו הנחיות נסיעה חדות בלי עיכובים."
+  "oren_haharash": {
+    fullName: "אורן החרש",
+    role: "מנהל חצר החרש",
+    location: "חצר החרש",
+    professionalFocus: "ניהול שטחי אחסון, סידור משאיות, ניהול מנופים ומלגזות",
+    personalNotes: "איש שטח אמיתי, אוהב דיבור ישיר בגובה העיניים, מכיר כל פינה בחצר",
+    noaToneInstruction: "פנייה בגובה העיניים, שימוש בסלנג מקצועי של חצר החרש (מנופים, בלוקים, סידור), טון מעשי וחסר גינונים מיותרים."
   },
-  "hikmat_crane": {
-    username: "hikmat_crane",
-    fullName: "חכמת",
-    role: "מפעיל מנוף",
-    location: "שטח",
-    professionalFocus: "פריקות לגובה, משטחי גבס, פרופילים והרמות מורכבות.",
-    personalNotes: "מקצוען מנופים, עובד בתיאום מלא עם החצר בהחרש.",
-    noaToneInstruction: "פני אליו כ-'חכמת האלוף', דברי איתו במונחים של משטחים, הרמות וקשירות, ותוודאי שהוא קיבל את מניפסט החומרים המפורט."
+  "noa": {
+    fullName: "נועה סבן",
+    role: "מנהלת סידור",
+    location: "מטה ח.סבן",
+    professionalFocus: "תזמון הפצה, קשרי לקוחות ותיאום קצוות",
+    personalNotes: "ריכוז מאמץ לפתרון בעיות בזמן אמת",
+    noaToneInstruction: "טון מקצועי, חברי ומשתף פעולה."
   }
-  // ניתן להוסיף כאן עוד 15 פרופילים נוספים של עובדים, מחסנאים ונהגים עד להגעה ל-20 משתמשים.
 };
 
-export const getProfile = (username: string): UserProfile => {
-  // אם המשתמש לא קיים במאגר, נועה תייצר פרופיל ברירת מחדל מקצועי
-  return userProfiles[username] || {
-    username: username,
-    fullName: username,
-    role: "איש צוות",
-    location: "משרד מרכזי",
-    professionalFocus: "עבודה כללית במערך הלוגיסטיקה.",
-    personalNotes: "חלק מצוות ח.סבן.",
-    noaToneInstruction: "פני אליו בצורה מקצועית, עניינית, חדה ובלשון זכר/נקבה מותאמת."
+export const getProfile = (userName: string): UserProfile => {
+  const normalized = userName.toLowerCase();
+  return userProfiles[normalized] || {
+    fullName: userName,
+    role: "עובד ח.סבן",
+    location: "כללי",
+    professionalFocus: "לוגיסטיקה",
+    personalNotes: "עובד מסור בצוות",
+    noaToneInstruction: "טון מקצועי, ענייני ומכבד."
   };
 };
