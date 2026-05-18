@@ -219,19 +219,21 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
 
     const handleContainerClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      const button = target.closest('button[data-action-type]');
+      // Support both old action-type and new V48 intent attributes
+      const button = target.closest('button[data-action-type], button[data-intent]');
       
       if (button) {
-        const type = button.getAttribute('data-action-type');
-        const payloadStr = button.getAttribute('data-action-payload');
+        const type = button.getAttribute('data-intent') || button.getAttribute('data-action-type');
+        const payloadStr = button.getAttribute('data-payload') || button.getAttribute('data-action-payload');
         
         if (type) {
           try {
             const payload = payloadStr ? JSON.parse(payloadStr) : {};
             executeOperationalAction(type, payload);
           } catch (err) {
-            console.error("Failed to parse action payload", err);
-            executeOperationalAction(type, {});
+            // If it's not JSON (like data-payload="דבק"), just pass it as a string payload
+            console.warn("Failed to parse action payload as JSON, passing as string", err);
+            executeOperationalAction(type, payloadStr || {});
           }
         }
       }
