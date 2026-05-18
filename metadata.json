@@ -1,6 +1,6 @@
 {
-  "name": "SabanOs V44 - Logistics Intelligence",
-  "description": "מערכת לוגיסטית מתקדמת לניהול הפצה, בקרת מלאי וניתוח מסמכים מבוסס בינה מלאכותית (נועה המוח).",
+  "name": "נועה-ח.סבן PWA Engine v56",
+  "description": "המוח המבצעי, הלוגיסטי והאסטרטגי של ח.סבן (נועה). ארכיטקטורת סנכרון כפולה, ניהול סמכויות ו-PWA מלא.",
   "requestFramePermissions": [
     "camera",
     "microphone",

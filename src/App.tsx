@@ -25,8 +25,10 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, query, doc, getDocFromServer, updateDoc } from 'firebase/firestore';
 
 import { motion, AnimatePresence } from 'motion/react';
+import { useRef } from 'react';
 
 import { handleFirestoreError, OperationType } from './lib/errorHandling';
+import { playSound } from './lib/audioService';
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -170,6 +172,32 @@ export default function App() {
     
     return load;
   }, [activeOrders]);
+
+  // Alert system for overloaded drivers
+  const prevOverloadedDrivers = useRef<Set<string>>(new Set());
+  
+  useEffect(() => {
+    const currentOverloaded = new Set<string>();
+    Object.entries(driverLoad).forEach(([driverId, count]) => {
+      if (count > 3 && driverId !== 'unassigned' && driverId !== 'self') {
+        currentOverloaded.add(driverId);
+      }
+    });
+
+    // Check for NEWLY overloaded drivers
+    let newlyOverloaded = false;
+    currentOverloaded.forEach(dId => {
+      if (!prevOverloadedDrivers.current.has(dId)) {
+        newlyOverloaded = true;
+      }
+    });
+
+    if (newlyOverloaded) {
+      playSound('alert');
+    }
+
+    prevOverloadedDrivers.current = currentOverloaded;
+  }, [driverLoad]);
 
   // Operational Driver Mapping
   const operationalDrivers = useMemo(() => {
@@ -323,17 +351,39 @@ export default function App() {
                    <Truck size={16} className="text-[#C5A059]" />
                 </div>
                 <div className="space-y-2.5">
-                  {operationalDrivers.slice(0, 5).map(d => (
-                    <div key={d.id} className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="size-8 rounded-lg bg-slate-800 flex items-center justify-center font-bold text-[10px] border border-white/10">
-                           {d.icon || d.name?.charAt(0)}
+                  {operationalDrivers.map(d => {
+                    const loadCount = driverLoad[d.id] || 0;
+                    
+                    let status = { label: 'תת-עומס', color: 'text-blue-400', bg: 'bg-blue-400/10', dot: 'bg-blue-400' };
+                    if (loadCount > 1 && loadCount <= 3) {
+                      status = { label: 'אופטימלי', color: 'text-emerald-400', bg: 'bg-emerald-400/10', dot: 'bg-emerald-400' };
+                    } else if (loadCount > 3) {
+                      status = { label: 'עומס יתר', color: 'text-red-400', bg: 'bg-red-400/10', dot: 'bg-red-400' };
+                    }
+
+                    return (
+                      <div key={d.id} className="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5 hover:bg-white/10 transition-colors group">
+                        <div className="flex items-center gap-2.5">
+                          <div className="size-8 rounded-lg bg-slate-800 flex items-center justify-center font-bold text-[10px] border border-white/10 shadow-inner shrink-0">
+                             {d.icon || d.name?.charAt(0)}
+                          </div>
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-black text-slate-300">{d.name}</span>
+                              <div className={cn("size-1.5 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]", status.dot)} />
+                            </div>
+                            <span className={cn("text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md mt-0.5 w-fit", status.bg, status.color)}>
+                              {status.label}
+                            </span>
+                          </div>
                         </div>
-                        <span className="text-[10px] font-black text-slate-300">{d.name}</span>
+                        <div className="flex flex-col items-end">
+                          <span className="text-[11px] font-black text-[#C5A059] group-hover:scale-110 transition-transform">{loadCount}</span>
+                          <span className="text-[8px] text-slate-500 font-bold uppercase tracking-tighter">הזמנות</span>
+                        </div>
                       </div>
-                      <span className="text-[10px] font-black text-[#C5A059]">{driverLoad[d.id] || 0}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -349,7 +399,7 @@ export default function App() {
               {window.innerWidth < 1024 && (
                 <button 
                   onClick={() => setActiveScreen('chat')}
-                  className="m-4 bg-[#C5A059] text-[#1E293B] py-3 rounded-xl font-black text-xs shadow-lg uppercase tracking-widest"
+                  className="m-4 bg-[#C5A059] text-[#1E293B] py-4 rounded-xl font-black text-sm shadow-lg uppercase tracking-widest h-12 flex items-center justify-center"
                 >
                   חזרה לצ'אט
                 </button>
@@ -419,7 +469,7 @@ export default function App() {
                 {window.innerWidth < 1024 && (
                   <button 
                     onClick={() => setActiveScreen('chat')}
-                    className="w-full bg-[#1E293B] text-white py-3 rounded-xl font-black text-xs shadow-lg"
+                    className="w-full bg-[#1E293B] text-white py-4 rounded-xl font-black text-sm h-12 flex items-center justify-center shadow-lg"
                   >
                     חזור לצ'אט
                   </button>
@@ -473,7 +523,7 @@ export default function App() {
                     <Database size={24} strokeWidth={3} />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black tracking-tight leading-none mb-1">SabanOS DNA - מרכז נתונים</h2>
+                    <h2 className="text-2xl font-black tracking-tight leading-none mb-1">SabanOS DNA v56 - מרכז נתונים</h2>
                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Data Integrity & Historical Manifests</p>
                   </div>
                 </div>
@@ -518,7 +568,7 @@ export default function App() {
                       <div className="absolute inset-0 bg-gradient-to-tr from-yellow-500/10 via-transparent to-blue-500/5 opacity-50" />
                       <Shield className="text-yellow-500 relative z-10" size={56} strokeWidth={1.5} />
                       <div className="relative z-10">
-                        <h3 className="text-2xl font-black uppercase tracking-tight mb-2">SabanOS V55 - Intelligence Engine</h3>
+                        <h3 className="text-2xl font-black uppercase tracking-tight mb-2">Noa-Saban PWA Engine v56 - Intelligence Engine</h3>
                         <p className="text-slate-400 text-sm font-bold max-w-xl mx-auto leading-relaxed shadow-sm">
                           כל הנתונים המוצגים מסונכרנים בזמן אמת מול ליבת ה-DNA של ח.סבן חומרי בניין. 
                           המערכת מנהלת כרגע {allOrders.length} תיעודים לוגיסטיים מלאים.

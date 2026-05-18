@@ -10,27 +10,35 @@ export interface UserProfile {
 export const userProfiles: Record<string, UserProfile> = {
   "rami": {
     fullName: "ראמי סבן",
-    role: "מנהל תפעול ובעלים",
+    role: "האדריכל והמפקד",
     location: "מטה ח.סבן",
-    professionalFocus: "ניהול על, קבלת החלטות אסטרטגיות ולוגיסטיקה מורכבת",
-    personalNotes: "מעריך דיוק מקסימלי, מהירות תגובה ונאמנות מוחלטת למותג סבן",
-    noaToneInstruction: "פנייה כ'ראמי אהובי' או 'המפקד', טון מעריץ אך מקצועי ברמה הגבוהה ביותר, דגש על עוצמה ושליטה."
+    professionalFocus: "סמכות מוחלטת (Root Admin), ניהול על, אסטרטגיה ו-DNA של המערכת",
+    personalNotes: "אוהב חדות, מהירות, מקצועיות בלתי מתפשרת ודיבור בגובה העיניים כשותף ואח יקר",
+    noaToneInstruction: "פנייה כ'ראמי אהובי', 'המפקד שלי' או 'שותף יקר'. טון חם, מעריץ ושותפות עמוקה."
   },
   "harel": {
-    fullName: "הראל סבן",
-    role: "מנכ\"ל",
+    fullName: "הראל אידלסטון",
+    role: "המנכ\"ל (CEO)",
     location: "מטה ח.סבן",
-    professionalFocus: "אסטרטגיה עסקית, צמיחה וניהול פיננסי",
-    personalNotes: "מעדיף דיווחים תמציתיים, נתונים יבשים ומדויקים וראייה מערכתית",
-    noaToneInstruction: "פנייה כ'המנכ\"ל הראל', טון מכבד מאוד, רשמי וענייני."
+    professionalFocus: "בקרת מטה עליונה (Executive Oversight), אסטרטגיה וצמיחה",
+    personalNotes: "טון ממלכתי, מקצועי, מסור למשפחתו ופרויקטי הבנייה",
+    noaToneInstruction: "פנייה כ'המנכ\"ל הראל', טון מכובד וממלכתי, הענקת מצב פיקוח מלא."
   },
   "oren_haharash": {
     fullName: "אורן החרש",
     role: "מנהל חצר החרש",
     location: "חצר החרש",
-    professionalFocus: "ניהול שטחי אחסון, סידור משאיות, ניהול מנופים ומלגזות",
-    personalNotes: "איש שטח אמיתי, אוהב דיבור ישיר בגובה העיניים, מכיר כל פינה בחצר",
-    noaToneInstruction: "פנייה בגובה העיניים, שימוש בסלנג מקצועי של חצר החרש (מנופים, בלוקים, סידור), טון מעשי וחסר גינונים מיותרים."
+    professionalFocus: "ניהול שטח וחצר (Yard Operations), מלאי זמין, שיבוץ מקומי",
+    personalNotes: "איש שטח חרוץ, חברי, דוגל בפתרונות מהירים ואפקטיביים",
+    noaToneInstruction: "פנייה כ'אורן אחי הגבר' או 'אורן אחי היקר'. טון חברי, מעשי וממוקד חצר החרש."
+  },
+  "driver": {
+    fullName: "נהג הפצה",
+    role: "משימות שטח (Field Logistics)",
+    location: "שטח / משאית",
+    professionalFocus: "יעדי פריקה, מניפסט חומרים ועדכוני סטטוס",
+    personalNotes: "קצר, ישיר, תלוי זמני הגעה ועומסי כבישים",
+    noaToneInstruction: "טון קצר, ישיר וענייני. הצגת כרטיסי משימה וסטטוס בלבד."
   },
   "noa": {
     fullName: "נועה סבן",

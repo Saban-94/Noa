@@ -7,6 +7,7 @@ import { OrderCard } from './OrderCard';
 import { doc, updateDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { handleFirestoreError, OperationType } from '../lib/firestore-utils';
+import { playSound } from '../lib/audioService';
 
 interface ChatRoomProps {
   orders: any[];
@@ -20,10 +21,10 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
     {
       id: '1',
       role: 'assistant',
-      text: `<div class="space-y-4 backdrop-blur-md bg-white/80 p-6 rounded-[2rem] border border-white/20 shadow-xl">
-        <p style="font-size: 18px; font-weight: 900;" class="text-[#1E293B] tracking-tight">שלום ראמי אהובי, המפקד.</p>
-        <div class="border-r-4 border-[#C5A059] bg-slate-50/50 p-5 rounded-2xl shadow-inner">
-          <p class="text-sm font-bold leading-relaxed text-slate-700">כל מערכות ה-SabanOS V55 מסונכרנות. 19 מסדי נתונים פעילים. איך נועה יכולה לסייע בבניין הקיסרות היום?</p>
+      text: `<div class="space-y-4 backdrop-blur-md bg-white/80 p-6 rounded-[2.5rem] border border-[#C5A059]/20 shadow-2xl">
+        <p style="font-size: 20px; font-weight: 900;" class="text-[#1E293B] tracking-tighter">שלום ראמי אהובי, המפקד.</p>
+        <div class="border-r-4 border-[#C5A059] bg-slate-50/50 p-6 rounded-3xl shadow-inner">
+          <p class="text-base font-bold leading-relaxed text-slate-700">כל מערכות ה-PWA Core Engine v56 מסונכרנות. 19 מסדי נתונים פעילים ב-Double Sync. איך נועה יכולה לסייע בבניין הקיסרות היום?</p>
         </div>
         <div class="mt-4 pt-4 border-t border-slate-100 text-[11px] text-slate-400 font-bold signature italic">באדיבות נועה ❤️</div>
       </div>`,
@@ -31,49 +32,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
     }
   ]);
 
-  // Web Audio Synthesizer
-  const playSound = (type: 'sent' | 'received' | 'alert') => {
-    try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-
-      const now = audioCtx.currentTime;
-
-      if (type === 'sent') {
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(880, now);
-        oscillator.frequency.exponentialRampToValueAtTime(440, now + 0.1);
-        gainNode.gain.setValueAtTime(0.1, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-        oscillator.start(now);
-        oscillator.stop(now + 0.1);
-      } else if (type === 'received') {
-        oscillator.type = 'triangle';
-        oscillator.frequency.setValueAtTime(440, now);
-        oscillator.frequency.exponentialRampToValueAtTime(880, now + 0.15);
-        gainNode.gain.setValueAtTime(0.1, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-        oscillator.start(now);
-        oscillator.stop(now + 0.15);
-      } else if (type === 'alert') {
-        oscillator.type = 'square';
-        oscillator.frequency.setValueAtTime(220, now);
-        oscillator.frequency.setValueAtTime(440, now + 0.1);
-        oscillator.frequency.setValueAtTime(220, now + 0.2);
-        gainNode.gain.setValueAtTime(0.05, now);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-        oscillator.start(now);
-        oscillator.stop(now + 0.3);
-      }
-    } catch (e) {
-      console.warn("Audio Context failed", e);
-    }
-  };
-
+  // Web Audio Synthesizer (V56 Protocol)
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
@@ -469,7 +428,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="הקלד פקודה ל-SabanOS..."
-            className="flex-1 bg-transparent border-none outline-none text-sm py-2 placeholder:text-slate-400 font-bold pr-14"
+            className="flex-1 bg-transparent border-none outline-none text-base py-3 placeholder:text-slate-400 font-bold pr-14"
             dir="rtl"
           />
           
@@ -486,11 +445,11 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
                 fileInputRef.current?.click();
               }}
               className={cn(
-                "p-2 rounded-full transition-colors",
+                "p-3 rounded-full transition-colors",
                 isUploadingDoc ? "text-blue-500" : "text-slate-400 hover:text-slate-600 hover:bg-slate-200"
               )}
             >
-              {isUploadingDoc ? <Loader2 size={20} className="animate-spin" /> : <Paperclip size={20} />}
+              {isUploadingDoc ? <Loader2 size={22} className="animate-spin" /> : <Paperclip size={22} />}
             </motion.button>
             <input 
               type="file" 
@@ -504,9 +463,9 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
           <button 
             onClick={handleSend}
             disabled={!input.trim() || isTyping || isUploadingDoc}
-            className="size-10 bg-slate-900 text-white rounded-full flex items-center justify-center hover:bg-slate-800 transition-all disabled:opacity-30 disabled:scale-95 shadow-lg shadow-slate-900/20"
+            className="size-12 bg-slate-900 text-white rounded-full flex items-center justify-center hover:bg-slate-800 transition-all disabled:opacity-30 disabled:scale-95 shadow-lg shadow-slate-900/20"
           >
-            <Send size={18} />
+            <Send size={20} />
           </button>
         </div>
       </div>
