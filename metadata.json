@@ -1,6 +1,12 @@
 {
-  "name": "נועה |צאט",
-  "description": "העוזרת בסידור עם ראמי .",
-  "requestFramePermissions": [],
-  "majorCapabilities": []
+  "name": "SabanOs V44 - Logistics Intelligence",
+  "description": "מערכת לוגיסטית מתקדמת לניהול הפצה, בקרת מלאי וניתוח מסמכים מבוסס בינה מלאכותית (נועה המוח).",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

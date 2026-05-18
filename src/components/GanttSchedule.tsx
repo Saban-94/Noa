@@ -48,17 +48,26 @@ export const GanttSchedule: React.FC<GanttScheduleProps> = ({
   }, [activeOrders, drivers]);
 
   const displayOrders = (tab === 'active' ? activeOrders : historyOrders)
-    .sort((a, b) => new Date(b.dueDate || b.date || b.createdAt || 0).getTime() - new Date(a.dueDate || a.date || a.createdAt || 0).getTime());
+    .sort((a, b) => {
+      const parseDate = (d: any) => {
+        if (!d) return 0;
+        if (d.toDate) return d.toDate().getTime();
+        if (d.seconds) return d.seconds * 1000;
+        const date = new Date(d);
+        return isNaN(date.getTime()) ? 0 : date.getTime();
+      };
+      return parseDate(b.dueDate || b.date || b.createdAt) - parseDate(a.dueDate || a.date || a.createdAt);
+    });
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
   };
 
   const formatDate = (order: Order) => {
-    const d = order.dueDate || order.date || order.deliveryDate;
+    const d: any = order.dueDate || order.date || order.deliveryDate;
     if (!d) return 'טרם נקבע';
     try {
-      const date = new Date(d);
+      const date = d.toDate ? d.toDate() : (d.seconds ? new Date(d.seconds * 1000) : new Date(d));
       if (isNaN(date.getTime())) return 'טרם נקבע';
       return date.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
     } catch {
@@ -67,10 +76,10 @@ export const GanttSchedule: React.FC<GanttScheduleProps> = ({
   };
 
   const formatTime = (order: Order) => {
-    const d = order.dueDate || order.date || order.deliveryDate;
+    const d: any = order.dueDate || order.date || order.deliveryDate;
     if (!d) return 'טרם נקבע';
     try {
-      const date = new Date(d);
+      const date = d.toDate ? d.toDate() : (d.seconds ? new Date(d.seconds * 1000) : new Date(d));
       if (isNaN(date.getTime())) return '--:--';
       return date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
     } catch {

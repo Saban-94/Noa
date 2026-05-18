@@ -7,7 +7,7 @@ service cloud.firestore {
     }
 
     // Connection Test
-    match /test/connection {
+    match /test/{id} {
       allow read: if true;
     }
 

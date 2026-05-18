@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, Menu, Shield, Loader2 } from 'lucide-react';
+import { Send, Menu, Shield, Loader2, Paperclip } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { generateNoaResponse, AIResponse } from '../services/aiService';
 import { OrderCard } from './OrderCard';
@@ -21,11 +21,11 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
       id: '1',
       role: 'assistant',
       text: `<div class="space-y-4">
-        <p class="font-black text-[#1E3A8A]">שלום ראמי אהובי, המפקד.</p>
+        <p style="font-size: 16px; font-weight: bold;" class="text-[#1E3A8A]">שלום ראמי אהובי, המפקד.</p>
         <div class="border-r-4 border-[#C5A059] bg-[#F8FAFC] p-4 rounded-lg shadow-sm">
-          <p class="text-sm">הכל מסונכרן. כל מערכות ה-SabanOS פעילות. איך אוכל לסייע לך בניהול הלוגיסטיקה היום?</p>
+          <p style="font-family: monospace; font-style: italic;" class="text-sm">הכל מסונכרן. כל מערכות ה-SabanOS פעילות. איך אוכל לסייע לך בניהול הלוגיסטיקה היום?</p>
         </div>
-        <p class="text-[10px] text-slate-400 italic">באדיבות נועה ❤️</p>
+        <p style="border-right: 2px solid #b62b08;" class="text-[10px] text-slate-400 italic pr-2">באדיבות נועה ❤️</p>
       </div>`,
       timestamp: Date.now()
     }
@@ -36,6 +36,68 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const [executingActionId, setExecutingActionId] = useState<string | null>(null);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!['image/png', 'image/jpeg', 'application/pdf'].includes(file.type)) {
+      alert('סוג קובץ לא נתמך. אנא העלו PNG, JPEG או PDF.');
+      return;
+    }
+
+    setIsUploadingDoc(true);
+    try {
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+      
+      const base64Data = await base64Promise;
+      const pureBase64 = base64Data.split(',')[1];
+
+      const response = await fetch('/api/analyze-document', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: 'chat_upload_' + Date.now(),
+          fileData: pureBase64,
+          mimeType: file.type,
+          fileName: file.name
+        }),
+      });
+
+      if (!response.ok) throw new Error('נכשל בניתוח המסמך');
+
+      const result = await response.json();
+      const aiData = result.data;
+      
+      // Construct a summary string
+      let summary = `\n[ניתוח מסמך ע"י נועה המוח]:\n`;
+      summary += `סוג מסמך: ${aiData.documentType === 'receipt' ? 'תעודת משלוח' : aiData.documentType === 'invoice' ? 'חשבונית' : 'צילום אתר'}\n`;
+      if (aiData.orderNumber) summary += `מספר הזמנה: ${aiData.orderNumber}\n`;
+      if (aiData.customerName) summary += `לקוח: ${aiData.customerName}\n`;
+      if (aiData.items && aiData.items.length > 0) {
+        summary += `פריטים:\n`;
+        aiData.items.forEach((item: any) => {
+          summary += `- ${item.productName}: ${item.quantity} ${item.unit || 'יח\''}\n`;
+        });
+      }
+      if (aiData.hasSignature !== undefined) summary += `חתימה קיימת: ${aiData.hasSignature ? 'כן' : 'לא'}\n`;
+      if (aiData.siteCondition) summary += `מצב אתר: ${aiData.siteCondition}\n`;
+
+      setInput(prev => (prev ? prev + summary : summary));
+    } catch (err) {
+      console.error(err);
+      alert('שגיאה בעיבוד המסמך ע"י נועה המוח');
+    } finally {
+      setIsUploadingDoc(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -166,14 +228,18 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 layout
+                style={{ width: '837.558px' }}
                 className={cn(
-                  "flex items-start gap-4",
+                  "flex items-start gap-4 mx-auto",
                   msg.role === 'user' ? "flex-row-reverse" : "flex-row"
                 )}
               >
               {/* Avatar for AI */}
               {msg.role === 'assistant' && (
-                <div className="w-8 h-8 rounded-full border border-slate-300 overflow-hidden flex-shrink-0 mt-1 shadow-sm">
+                <div 
+                  style={{ width: '35.5151px', height: '35.5151px' }}
+                  className="rounded-full border border-slate-300 overflow-hidden flex-shrink-0 mt-1 shadow-sm"
+                >
                   <img src="https://i.postimg.cc/qqWtk5qr/Gemini-Generated-Image-6z6qts6z6qts6z6q.png" className="w-full h-full object-cover" alt="Noa" />
                 </div>
               )}
@@ -299,6 +365,20 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
 
       {/* Input */}
       <div className="p-6 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10">
+        <AnimatePresence>
+          {isUploadingDoc && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              className="flex items-center gap-2 mb-3 bg-blue-50 px-4 py-2 rounded-xl text-blue-600 text-xs font-black"
+            >
+              <Loader2 size={14} className="animate-spin" />
+              <span>נועה המוח סורקת מסמך... המתן בבקשה</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
         <div className="relative flex items-center bg-slate-100 rounded-full pl-2 pr-6 py-2 border border-slate-200 focus-within:border-slate-400 focus-within:bg-white transition-all">
           <input 
             type="text" 
@@ -306,11 +386,41 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="הקלד פקודה ל-SabanOS..."
-            className="flex-1 bg-transparent border-none outline-none text-sm py-2 placeholder:text-slate-400 font-bold"
+            className="flex-1 bg-transparent border-none outline-none text-sm py-2 placeholder:text-slate-400 font-bold pr-14"
+            dir="rtl"
           />
+          
+          {/* Upload Pin - WhatsApp style in Right Corner */}
+          <div className="absolute right-3">
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.1, rotate: 12 }}
+              whileTap={{ scale: 0.95 }}
+              disabled={isUploadingDoc}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                fileInputRef.current?.click();
+              }}
+              className={cn(
+                "p-2 rounded-full transition-colors",
+                isUploadingDoc ? "text-blue-500" : "text-slate-400 hover:text-slate-600 hover:bg-slate-200"
+              )}
+            >
+              {isUploadingDoc ? <Loader2 size={20} className="animate-spin" /> : <Paperclip size={20} />}
+            </motion.button>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload}
+              className="hidden" 
+              accept="image/png,image/jpeg,application/pdf"
+            />
+          </div>
+
           <button 
             onClick={handleSend}
-            disabled={!input.trim() || isTyping}
+            disabled={!input.trim() || isTyping || isUploadingDoc}
             className="size-10 bg-slate-900 text-white rounded-full flex items-center justify-center hover:bg-slate-800 transition-all disabled:opacity-30 disabled:scale-95 shadow-lg shadow-slate-900/20"
           >
             <Send size={18} />
