@@ -211,6 +211,36 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
     setIsTyping(false);
   };
 
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleContainerClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const button = target.closest('button[data-action-type]');
+      
+      if (button) {
+        const type = button.getAttribute('data-action-type');
+        const payloadStr = button.getAttribute('data-action-payload');
+        
+        if (type) {
+          try {
+            const payload = payloadStr ? JSON.parse(payloadStr) : {};
+            executeOperationalAction(type, payload);
+          } catch (err) {
+            console.error("Failed to parse action payload", err);
+            executeOperationalAction(type, {});
+          }
+        }
+      }
+    };
+
+    container.addEventListener('click', handleContainerClick);
+    return () => container.removeEventListener('click', handleContainerClick);
+  }, [messages, drivers]);
+
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] relative overflow-hidden">
       {/* Messages */}
@@ -219,7 +249,7 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar pt-10 overscroll-contain"
       >
-        <motion.div layout className="flex flex-col gap-8 min-h-full justify-end">
+        <motion.div layout ref={messagesContainerRef} className="flex flex-col gap-8 min-h-full justify-end">
           <AnimatePresence initial={false} mode="popLayout">
             {messages.map((msg) => (
               <motion.div

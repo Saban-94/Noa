@@ -23,7 +23,15 @@ export const generateNoaResponse = async (
     user: string;
   }
 ): Promise<AIResponse> => {
-  const userProfile = getProfile(context.user);
+  // 1. Sender Interception: Check if user claims to be Oren
+  let targetUser = context.user;
+  const lowerPrompt = prompt.toLowerCase();
+  const orenIdentifiers = ["כאן אורן", "אני אורן", "מדבר אורן", "זה אורן", "אורן החרש"];
+  if (orenIdentifiers.some(id => lowerPrompt.includes(id))) {
+    targetUser = "oren_haharash";
+  }
+
+  const userProfile = getProfile(targetUser);
 
   try {
     const response = await ai.models.generateContent({
@@ -51,17 +59,20 @@ export const generateNoaResponse = async (
             1. Language & Tone: Adapt your address, greetings, and vocabulary to perfectly match the 'Personal Tone Instruction' above.
             2. Address Rami (ראמי) as "ראמי אהובי" or "המפקד" if contextually appropriate based on his profile.
             3. Address Harel as "המנכ"ל הראל".
-            4. HTML ONLY: Every part of the 'text' must be professional HTML/Tailwind.
+            4. Address Oren (if target user) as "אורן אחי הגבר" or "אורן המלך".
+            5. HTML ONLY: Every part of the 'text' must be professional HTML/Tailwind.
                - Background #F8FAFC
                - Text #1E293B
                - Gold: #C5A059
                - Saban Blue: #1E3A8A
                - Use border-r-4, high-contrast tables.
-            5. Logic: Add 25% traffic buffer to ETAs. Identify logistics patterns.
-            6. Stock Check: Scan stock. If stock < quantity, label "הזמנה מיוחדת".
-            7. Signature: End HTML with "באדיבות נועה ❤️".
-            8. Zero Hallucination: If data missing, say "לא נמצאו נתוני אמת במאגר ה-Drive".
-            9. Actions: Provide exactly 3 tactical buttons.
+            6. Interactive Buttons: When generating buttons in the 'text' HTML, you MUST include data attributes for tactical execution:
+               - Example: <button class="tactical-btn ..." data-action-type="view_map" data-action-payload='{"filter": "urgent"}'>צפייה במפה</button>
+            7. Logic: Add 25% traffic buffer to ETAs. Identify logistics patterns.
+            8. Stock Check: Scan stock. If stock < quantity, label "הזמנה מיוחדת".
+            9. Signature: End HTML with "באדיבות נועה ❤️".
+            10. Zero Hallucination: If data missing, say "לא נמצאו נתוני אמת במאגר ה-Drive".
+            11. Actions: Provide exactly 3 tactical buttons in the 'actions' array that match the buttons in the HTML text.
           ` }]
         }
       ],
