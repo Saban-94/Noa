@@ -19,7 +19,8 @@ import {
   Upload,
   Camera,
   Mail,
-  ListTodo
+  ListTodo,
+  Calendar
 } from 'lucide-react';
 import { Order, InventoryItem } from './types';
 import { auth, db, signInWithGoogle, disconnectGmail, getCachedGmailToken, setCachedGmailToken } from './lib/firebase';
@@ -28,6 +29,7 @@ import { collection, onSnapshot, query, doc, getDocFromServer, updateDoc } from 
 import { listGmailMessages, sendGmailMessage, GmailMessage } from './services/gmailService';
 import { GmailDashboard } from './components/GmailDashboard';
 import { TasksManager } from './components/TasksManager';
+import { CalendarManager } from './components/CalendarManager';
 
 import { motion, AnimatePresence } from 'motion/react';
 import { useRef } from 'react';
@@ -70,6 +72,7 @@ export default function App() {
   const [gmailMessages, setGmailMessages] = useState<GmailMessage[]>([]);
   const [gmailDrawerOpen, setGmailDrawerOpen] = useState<boolean>(false);
   const [tasksDrawerOpen, setTasksDrawerOpen] = useState<boolean>(false);
+  const [calendarDrawerOpen, setCalendarDrawerOpen] = useState<boolean>(false);
   const [isFetchingGmail, setIsFetchingGmail] = useState<boolean>(false);
   const [gmailSearchQuery, setGmailSearchQuery] = useState<string>('');
   const [gmailActiveEmail, setGmailActiveEmail] = useState<GmailMessage | null>(null);
@@ -536,6 +539,28 @@ export default function App() {
             >
               <ListTodo size={18} />
               <span className="text-xs hidden sm:inline">חבר משימות</span>
+            </button>
+          )}
+
+          {/* Google Calendar Sync Controller */}
+          {gmailToken ? (
+            <button 
+              onClick={() => {
+                setCalendarDrawerOpen(true);
+                playSound('gps_ping');
+              }}
+              className="px-4 h-12 rounded-2xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 font-bold flex items-center gap-2 transition-all shadow-lg"
+            >
+              <Calendar size={18} className="text-cyan-400 animate-pulse" />
+              <span className="text-xs hidden sm:inline">יומן Google</span>
+            </button>
+          ) : (
+            <button 
+              onClick={handleConnectGmail}
+              className="px-4 h-12 rounded-2xl bg-[#C5A059]/10 hover:bg-[#C5A059] hover:text-[#1E293B] border border-[#C5A059]/30 text-[#C5A059] font-black flex items-center gap-2 transition-all shadow-lg"
+            >
+              <Calendar size={18} />
+              <span className="text-xs hidden sm:inline">חבר יומן</span>
             </button>
           )}
 
@@ -1054,6 +1079,32 @@ export default function App() {
               <TasksManager 
                 token={gmailToken!} 
                 onClose={() => setTasksDrawerOpen(false)} 
+              />
+            </motion.div>
+          </div>
+        )}
+
+        {/* Google Calendar Custom Sliding Controller Drawer (PWA Engine v63) */}
+        {calendarDrawerOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end" dir="rtl">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setCalendarDrawerOpen(false)}
+              className="absolute inset-0 bg-[#0f172a]/70 backdrop-blur-md"
+            />
+            
+            <motion.div 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 20, stiffness: 100 }}
+              className="w-full max-w-4xl bg-white h-full relative z-10 shadow-3xl border-r border-[#C5A059]/15 flex flex-col overflow-hidden text-[#1E293B]"
+            >
+              <CalendarManager 
+                token={gmailToken!} 
+                onClose={() => setCalendarDrawerOpen(false)} 
               />
             </motion.div>
           </div>

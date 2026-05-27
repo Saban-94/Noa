@@ -8,11 +8,12 @@ export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId)
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Workspace Gmail and Tasks Scopes added for PWA Engine integration (PWA Engine v62)
+// Workspace Gmail, Tasks and Calendar Scopes added for PWA Engine integration (PWA Engine v63)
 googleProvider.addScope('https://www.googleapis.com/auth/gmail.readonly');
 googleProvider.addScope('https://www.googleapis.com/auth/gmail.send');
 googleProvider.addScope('https://www.googleapis.com/auth/gmail.modify');
 googleProvider.addScope('https://www.googleapis.com/auth/tasks');
+googleProvider.addScope('https://www.googleapis.com/auth/calendar');
 
 let cachedToken: string | null = null;
 
