@@ -18,13 +18,16 @@ import {
   Zap,
   Upload,
   Camera,
-  Mail
+  Mail,
+  ListTodo
 } from 'lucide-react';
 import { Order, InventoryItem } from './types';
 import { auth, db, signInWithGoogle, disconnectGmail, getCachedGmailToken, setCachedGmailToken } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, query, doc, getDocFromServer, updateDoc } from 'firebase/firestore';
 import { listGmailMessages, sendGmailMessage, GmailMessage } from './services/gmailService';
+import { GmailDashboard } from './components/GmailDashboard';
+import { TasksManager } from './components/TasksManager';
 
 import { motion, AnimatePresence } from 'motion/react';
 import { useRef } from 'react';
@@ -66,9 +69,114 @@ export default function App() {
   const [gmailToken, setGmailToken] = useState<string | null>(getCachedGmailToken());
   const [gmailMessages, setGmailMessages] = useState<GmailMessage[]>([]);
   const [gmailDrawerOpen, setGmailDrawerOpen] = useState<boolean>(false);
+  const [tasksDrawerOpen, setTasksDrawerOpen] = useState<boolean>(false);
   const [isFetchingGmail, setIsFetchingGmail] = useState<boolean>(false);
   const [gmailSearchQuery, setGmailSearchQuery] = useState<string>('');
   const [gmailActiveEmail, setGmailActiveEmail] = useState<GmailMessage | null>(null);
+  const [gmailSelectedCategory, setGmailSelectedCategory] = useState<string>('all');
+
+  // Filter messages based on Selected Donut/Legend Category
+  const filteredGmailMessages = useMemo(() => {
+    if (gmailSelectedCategory === 'all') return gmailMessages;
+
+    return gmailMessages.filter(email => {
+      const subject = (email.subject || '').toLowerCase();
+      const snippet = (email.snippet || '').toLowerCase();
+      const body = (email.body || '').toLowerCase();
+      const combinedText = `${subject} ${snippet} ${body}`;
+
+      if (gmailSelectedCategory === 'invoices') {
+        return (
+          combinedText.includes('חשבונית') ||
+          combinedText.includes('קבלה') ||
+          combinedText.includes('תשלום') ||
+          combinedText.includes('invoice') ||
+          combinedText.includes('receipt') ||
+          combinedText.includes('payment') ||
+          combinedText.includes('billing') ||
+          combinedText.includes('חשבון') ||
+          combinedText.includes('מחיר')
+        );
+      }
+      if (gmailSelectedCategory === 'delivery') {
+        return (
+          combinedText.includes('תעודת משלוח') ||
+          combinedText.includes('משלוח') ||
+          combinedText.includes('תעודה') ||
+          combinedText.includes('delivery') ||
+          combinedText.includes('notice') ||
+          combinedText.includes('packing') ||
+          combinedText.includes('dispatch') ||
+          combinedText.includes('גליה') ||
+          combinedText.includes('נהג') ||
+          combinedText.includes('אספקה')
+        );
+      }
+      if (gmailSelectedCategory === 'logistics') {
+        return (
+          combinedText.includes('ספק') ||
+          combinedText.includes('מלט') ||
+          combinedText.includes('בטון') ||
+          combinedText.includes('ברזל') ||
+          combinedText.includes('חלב') ||
+          combinedText.includes('חול') ||
+          combinedText.includes('חומרי בניין') ||
+          combinedText.includes('חצר') ||
+          combinedText.includes('מלאי') ||
+          combinedText.includes('הזמנה') ||
+          combinedText.includes('order') ||
+          combinedText.includes('supply') ||
+          combinedText.includes('inventory') ||
+          combinedText.includes('stock') ||
+          combinedText.includes('cement')
+        );
+      }
+      if (gmailSelectedCategory === 'other') {
+        const isInvoices = (
+          combinedText.includes('חשבונית') ||
+          combinedText.includes('קבלה') ||
+          combinedText.includes('תשלום') ||
+          combinedText.includes('invoice') ||
+          combinedText.includes('receipt') ||
+          combinedText.includes('payment') ||
+          combinedText.includes('billing') ||
+          combinedText.includes('חשבון') ||
+          combinedText.includes('מחיר')
+        );
+        const isDelivery = (
+          combinedText.includes('תעודת משלוח') ||
+          combinedText.includes('משלוח') ||
+          combinedText.includes('תעודה') ||
+          combinedText.includes('delivery') ||
+          combinedText.includes('notice') ||
+          combinedText.includes('packing') ||
+          combinedText.includes('dispatch') ||
+          combinedText.includes('גליה') ||
+          combinedText.includes('נהג') ||
+          combinedText.includes('אספקה')
+        );
+        const isLogistics = (
+          combinedText.includes('ספק') ||
+          combinedText.includes('מלט') ||
+          combinedText.includes('בטון') ||
+          combinedText.includes('ברזל') ||
+          combinedText.includes('חלב') ||
+          combinedText.includes('חול') ||
+          combinedText.includes('חומרי בניין') ||
+          combinedText.includes('חצר') ||
+          combinedText.includes('מלאי') ||
+          combinedText.includes('הזמנה') ||
+          combinedText.includes('order') ||
+          combinedText.includes('supply') ||
+          combinedText.includes('inventory') ||
+          combinedText.includes('stock') ||
+          combinedText.includes('cement')
+        );
+        return !isInvoices && !isDelivery && !isLogistics;
+      }
+      return true;
+    });
+  }, [gmailMessages, gmailSelectedCategory]);
 
   const fetchGmailEmails = async (token: string, q = '') => {
     setIsFetchingGmail(true);
@@ -153,7 +261,12 @@ export default function App() {
           try {
             await getDocFromServer(doc(db, path));
           } catch (retryError) {
-            handleFirestoreError(retryError, OperationType.GET, path);
+            const msg = retryError instanceof Error ? retryError.message : String(retryError);
+            if (msg.toLowerCase().includes('offline') || msg.toLowerCase().includes('network')) {
+              console.warn("SabanOS PWA Operating in Offline Cache synchronization mode (No connection test needed).");
+            } else {
+              handleFirestoreError(retryError, OperationType.GET, path);
+            }
           }
         }, 2000);
       }
@@ -401,6 +514,28 @@ export default function App() {
             >
               <Mail size={18} />
               <span className="text-xs hidden sm:inline">חבר Gmail</span>
+            </button>
+          )}
+
+          {/* Google Tasks Sync Controller */}
+          {gmailToken ? (
+            <button 
+              onClick={() => {
+                setTasksDrawerOpen(true);
+                playSound('gps_ping');
+              }}
+              className="px-4 h-12 rounded-2xl bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 font-bold flex items-center gap-2 transition-all shadow-lg"
+            >
+              <ListTodo size={18} className="text-yellow-400 animate-pulse" />
+              <span className="text-xs hidden sm:inline">משימות Google</span>
+            </button>
+          ) : (
+            <button 
+              onClick={handleConnectGmail}
+              className="px-4 h-12 rounded-2xl bg-[#C5A059]/10 hover:bg-[#C5A059] hover:text-[#1E293B] border border-[#C5A059]/30 text-[#C5A059] font-black flex items-center gap-2 transition-all shadow-lg"
+            >
+              <ListTodo size={18} />
+              <span className="text-xs hidden sm:inline">חבר משימות</span>
             </button>
           )}
 
@@ -835,6 +970,13 @@ export default function App() {
                     ) : (
                       /* Right Pane: Message List */
                       <div className="flex-1 flex flex-col overflow-hidden">
+                        {/* Custom analytical visualizer featuring recharts donut chart (PWA Engine v61) */}
+                        <GmailDashboard
+                          emails={gmailMessages}
+                          selectedCategory={gmailSelectedCategory}
+                          onSelectCategory={setGmailSelectedCategory}
+                        />
+
                         <div className="flex justify-between items-center mb-4 flex-row-reverse">
                           <h3 className="text-sm font-black text-slate-700">דואר שהתקבל לאחרונה</h3>
                           <div className="flex gap-2">
@@ -860,8 +1002,8 @@ export default function App() {
                         </div>
 
                         <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1 pl-1">
-                          {gmailMessages.length > 0 ? (
-                            gmailMessages.map((msg) => (
+                          {filteredGmailMessages.length > 0 ? (
+                            filteredGmailMessages.map((msg) => (
                               <div
                                 key={msg.id}
                                 onClick={() => setGmailActiveEmail(msg)}
@@ -878,7 +1020,7 @@ export default function App() {
                           ) : (
                             <div className="py-20 text-center space-y-4 bg-white rounded-[3rem] border border-dashed border-slate-200">
                               <Mail size={48} className="mx-auto text-slate-200" />
-                              <p className="text-slate-400 font-bold font-sans">לא נמצאו הודעות. נסו חיפוש אחר.</p>
+                              <p className="text-slate-400 font-bold font-sans">לא נמצאו הודעות בקטגוריה זו. נסו בחירה אחרת.</p>
                             </div>
                           )}
                         </div>
@@ -887,6 +1029,32 @@ export default function App() {
                   </div>
                 )}
               </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Google Tasks Custom Sliding Controller Drawer (PWA Engine v62) */}
+        {tasksDrawerOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end" dir="rtl">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setTasksDrawerOpen(false)}
+              className="absolute inset-0 bg-[#0f172a]/70 backdrop-blur-md"
+            />
+            
+            <motion.div 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 20, stiffness: 100 }}
+              className="w-full max-w-4xl bg-white h-full relative z-10 shadow-3xl border-r border-[#C5A059]/15 flex flex-col overflow-hidden text-[#1E293B]"
+            >
+              <TasksManager 
+                token={gmailToken!} 
+                onClose={() => setTasksDrawerOpen(false)} 
+              />
             </motion.div>
           </div>
         )}

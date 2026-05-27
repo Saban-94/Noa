@@ -27,8 +27,9 @@ interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errorMsg = error instanceof Error ? error.message : String(error);
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: errorMsg,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -43,6 +44,13 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  const jsonStr = JSON.stringify(errInfo);
+  console.error('Firestore Error: ', jsonStr);
+  
+  if (errorMsg.toLowerCase().includes('offline') || errorMsg.toLowerCase().includes('network') || errorMsg.toLowerCase().includes('failed-precondition')) {
+    console.warn('SabanOS PWA Operating in Cached Offline Mode safely: ', errorMsg);
+    return;
+  }
+  
+  throw new Error(jsonStr);
 }
