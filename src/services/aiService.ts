@@ -22,6 +22,7 @@ export const generateNoaResponse = async (
     inventory: any[];
     drivers: any[];
     user: string;
+    gmailEmails?: string[];
   }
 ): Promise<AIResponse> => {
   // 1. Context Gating
@@ -85,6 +86,11 @@ export const generateNoaResponse = async (
             - Focus: ${userProfile.professionalFocus}
             - Instructions: ${userProfile.noaToneInstruction}
             - Prayer Context: ${prayerContext}
+
+            Gmail Context:
+            - Status: ${context.gmailEmails ? "מחובר ומסונכרן" : "לא מחובר"}
+            - Emails (Latest/Search Results from Gmail API):
+            ${context.gmailEmails && context.gmailEmails.length > 0 ? context.gmailEmails.join('\n') : "אין הודעות דואר זמינות כרגע או שאין תיבת דואר מחוברת."}
 
             Request: ${prompt}
             Current Time (System): ${new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' })}

@@ -14,9 +14,10 @@ interface ChatRoomProps {
   inventory: any[];
   drivers: any[];
   onAction: (type: string, payload: any) => void;
+  gmailToken?: string | null;
 }
 
-export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, onAction }) => {
+export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, onAction, gmailToken }) => {
   const [messages, setMessages] = useState<any[]>([
     {
       id: '1',
@@ -152,6 +153,27 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
           quantity: payload.newQuantity,
           updatedAt: serverTimestamp()
         });
+      } else if (type === 'send_gmail' || type === 'send_email') {
+        const to = payload.to || '';
+        const subject = payload.subject || '';
+        const body = payload.body || '';
+
+        if (!gmailToken) {
+          alert('אנא חבר את ה-Gmail שלך תחילה בראש העמוד למעלה.');
+          setExecutingActionId(null);
+          return;
+        }
+
+        const confirmed = window.confirm(
+          `האם אתה בטוח שברצונך לשלוח אימייל זה דרך ה-Gmail שלך?\n\nנמען: ${to}\nנושא: ${subject}`
+        );
+        if (!confirmed) {
+          setExecutingActionId(null);
+          return;
+        }
+
+        const { sendGmailMessage } = await import('../services/gmailService');
+        await sendGmailMessage(gmailToken, to, subject, body);
       } else if (type === 'waze' || type === 'view_map' || type === 'view_inventory') {
         onAction(type, payload);
       }
@@ -191,7 +213,40 @@ export const ChatRoom: React.FC<ChatRoomProps> = ({ orders, inventory, drivers, 
     setIsTyping(true);
     playSound('sent');
 
-    const aiResponse = await generateNoaResponse(input, { orders, inventory, drivers, user: auth.currentUser?.displayName || 'Rami' });
+    let gmailEmails: string[] = [];
+    if (gmailToken) {
+      try {
+        const lowerInput = input.toLowerCase();
+        // Determine search query based on input keywords
+        let queryStr = '';
+        if (lowerInput.includes('גליה')) {
+          queryStr = 'גליה';
+        } else if (lowerInput.includes('תעודת משלוח') || lowerInput.includes('משלוח')) {
+          queryStr = 'תעודת משלוח';
+        } else if (lowerInput.includes('ספק') || lowerInput.includes('מלט') || lowerInput.includes('בטון')) {
+          queryStr = 'חומרי בניין';
+        } else if (lowerInput.includes('מייל') || lowerInput.includes('אימייל') || lowerInput.includes('דואר')) {
+          queryStr = ''; // general latest emails
+        }
+        
+        // Only trigger Gmail API search if query-worthy keyword is in user text
+        if (lowerInput.includes('מייל') || lowerInput.includes('אימייל') || lowerInput.includes('דואר') || lowerInput.includes('גליה') || lowerInput.includes('משלוח')) {
+          const { listGmailMessages } = await import('../services/gmailService');
+          const emails = await listGmailMessages(gmailToken, queryStr);
+          gmailEmails = emails.map(e => `מאת: ${e.from} | נושא: ${e.subject} | תוכן: ${e.snippet} | תאריך: ${e.date}`);
+        }
+      } catch (err) {
+        console.warn("Could not query Gmail api for context:", err);
+      }
+    }
+
+    const aiResponse = await generateNoaResponse(input, { 
+      orders, 
+      inventory, 
+      drivers, 
+      user: auth.currentUser?.displayName || 'Rami',
+      gmailEmails: gmailEmails.length > 0 ? gmailEmails : undefined
+    });
     
     // Log AI interaction
     try {

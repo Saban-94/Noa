@@ -17,12 +17,14 @@ import {
   Package,
   Zap,
   Upload,
-  Camera
+  Camera,
+  Mail
 } from 'lucide-react';
 import { Order, InventoryItem } from './types';
-import { auth, db } from './lib/firebase';
+import { auth, db, signInWithGoogle, disconnectGmail, getCachedGmailToken, setCachedGmailToken } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, query, doc, getDocFromServer, updateDoc } from 'firebase/firestore';
+import { listGmailMessages, sendGmailMessage, GmailMessage } from './services/gmailService';
 
 import { motion, AnimatePresence } from 'motion/react';
 import { useRef } from 'react';
@@ -59,6 +61,53 @@ export default function App() {
   // Responsive handle
   // Custom Bottom Nav for Mobile
   const [activeScreen, setActiveScreen] = useState<'chat' | 'siddur' | 'inventory' | 'history'>('chat');
+
+  // Gmail Core States (PWA Engine v60)
+  const [gmailToken, setGmailToken] = useState<string | null>(getCachedGmailToken());
+  const [gmailMessages, setGmailMessages] = useState<GmailMessage[]>([]);
+  const [gmailDrawerOpen, setGmailDrawerOpen] = useState<boolean>(false);
+  const [isFetchingGmail, setIsFetchingGmail] = useState<boolean>(false);
+  const [gmailSearchQuery, setGmailSearchQuery] = useState<string>('');
+  const [gmailActiveEmail, setGmailActiveEmail] = useState<GmailMessage | null>(null);
+
+  const fetchGmailEmails = async (token: string, q = '') => {
+    setIsFetchingGmail(true);
+    try {
+      const messages = await listGmailMessages(token, q);
+      setGmailMessages(messages);
+    } catch (err) {
+      console.warn("Failed fetching Gmail emails:", err);
+    } finally {
+      setIsFetchingGmail(false);
+    }
+  };
+
+  const handleConnectGmail = async () => {
+    try {
+      const res = await signInWithGoogle();
+      if (res && res.token) {
+        setGmailToken(res.token);
+        playSound('received');
+        fetchGmailEmails(res.token, gmailSearchQuery);
+      }
+    } catch (err) {
+      console.error("Gmail authorization issue", err);
+    }
+  };
+
+  const handleDisconnectGmail = async () => {
+    await disconnectGmail();
+    setGmailToken(null);
+    setGmailMessages([]);
+    playSound('sent');
+  };
+
+  useEffect(() => {
+    if (gmailToken) {
+      fetchGmailEmails(gmailToken, gmailSearchQuery);
+    }
+  }, [gmailToken]);
+
 
   useEffect(() => {
     const handleResize = () => {
@@ -336,6 +385,25 @@ export default function App() {
               <p className="font-black tracking-tight text-white text-sm">{currentPersona.role}</p>
             </div>
           </div>
+          {/* Gmail Sync Controller */}
+          {gmailToken ? (
+            <button 
+              onClick={() => setGmailDrawerOpen(true)}
+              className="px-4 h-12 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold flex items-center gap-2 transition-all shadow-lg"
+            >
+              <Mail size={18} className="text-emerald-400 animate-pulse" />
+              <span className="text-xs hidden sm:inline">Gmail מחובר</span>
+            </button>
+          ) : (
+            <button 
+              onClick={handleConnectGmail}
+              className="px-4 h-12 rounded-2xl bg-[#C5A059]/10 hover:bg-[#C5A059] hover:text-[#1E293B] border border-[#C5A059]/30 text-[#C5A059] font-black flex items-center gap-2 transition-all shadow-lg"
+            >
+              <Mail size={18} />
+              <span className="text-xs hidden sm:inline">חבר Gmail</span>
+            </button>
+          )}
+
           <button 
             onClick={() => setAdminDrawerOpen(true)}
             className="group relative flex items-center justify-center size-12 rounded-2xl bg-white/5 hover:bg-[#C5A059] text-slate-400 hover:text-[#1E293B] transition-all shadow-xl border border-white/10"
@@ -437,6 +505,7 @@ export default function App() {
               currentLoad: driverLoad[d.id] || 0 
             }))} 
             onAction={handleAction} 
+            gmailToken={gmailToken}
           />
         </main>
 
@@ -665,6 +734,156 @@ export default function App() {
                         </div>
                       )}
                     </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Gmail Custom Sliding Controller Drawer (PWA Engine v60) */}
+        {gmailDrawerOpen && (
+          <div className="fixed inset-0 z-50 flex justify-end" dir="rtl">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setGmailDrawerOpen(false)}
+              className="absolute inset-0 bg-[#0f172a]/70 backdrop-blur-md"
+            />
+            
+            <motion.div 
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 20, stiffness: 100 }}
+              className="w-full max-w-2xl bg-white h-full relative z-10 shadow-3xl border-r border-[#C5A059]/15 flex flex-col overflow-hidden text-[#1E293B]"
+            >
+              {/* Header */}
+              <div className="h-24 bg-[#1E293B] text-white flex items-center justify-between px-8 border-b border-[#C5A059]/20 shrink-0">
+                <div className="flex items-center gap-4">
+                  <div className="size-12 rounded-xl bg-orange-500/10 flex items-center justify-center border border-orange-500/20 text-[#C5A059]">
+                    <Mail size={22} className="animate-bounce" />
+                  </div>
+                  <div className="text-right">
+                    <h2 className="text-xl font-black tracking-tight flex items-center gap-2">חיבורי Gmail וספק</h2>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">פיקוח נתונים - גליה וספקי חומרים</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={handleDisconnectGmail}
+                    className="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-bold text-xs transition-all border border-red-500/20"
+                  >
+                    ניתוק
+                  </button>
+                  <button onClick={() => setGmailDrawerOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-all text-slate-400">
+                    <X size={24} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Drawer Content */}
+              <div className="flex-1 flex flex-col overflow-hidden bg-slate-50/50 p-6">
+                
+                {/* Search Bar */}
+                <div className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center gap-3 shadow-inner mb-6">
+                  <input
+                    type="text"
+                    value={gmailSearchQuery}
+                    onChange={(e) => setGmailSearchQuery(e.target.value)}
+                    placeholder="חפש תעודות משלוח, גליה, ספקים..."
+                    className="flex-1 bg-transparent px-2 text-sm font-bold text-slate-800 outline-none placeholder:text-slate-400 text-right"
+                  />
+                  <button
+                    onClick={() => gmailToken && fetchGmailEmails(gmailToken, gmailSearchQuery)}
+                    className="px-4 py-2 bg-[#C5A059] text-[#1E293B] font-black text-xs rounded-xl shadow-lg hover:bg-slate-800 hover:text-white transition-all"
+                  >
+                    חפש
+                  </button>
+                </div>
+
+                {isFetchingGmail ? (
+                  <div className="flex-1 flex flex-col items-center justify-center gap-4">
+                    <Loader2 className="animate-spin text-[#C5A059]" size={32} />
+                    <p className="text-sm font-bold text-slate-500 font-sans">מסנכרן תנועות Gmail של ח.סבן...</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 flex gap-4 overflow-hidden">
+                    {/* Left Pane (Message Detail if active) */}
+                    {gmailActiveEmail ? (
+                      <div className="flex-1 bg-white p-6 rounded-3xl border border-slate-100 flex flex-col h-full overflow-hidden shadow-sm">
+                        <div className="flex justify-between items-center pb-4 border-b border-slate-100 flex-row-reverse mb-4 shrink-0">
+                          <button 
+                            onClick={() => setGmailActiveEmail(null)}
+                            className="text-xs text-[#C5A059] font-black hover:underline"
+                          >
+                            חזרה לרשימה
+                          </button>
+                          <div className="text-right">
+                            <span className="text-[10px] text-slate-400 font-bold block">{gmailActiveEmail.date}</span>
+                            <span className="text-sm font-black text-slate-800 block">{gmailActiveEmail.from}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto text-right custom-scrollbar text-sm font-medium leading-relaxed text-slate-700 whitespace-pre-line select-text">
+                          <h4 className="text-base font-black text-[#1E293B] mb-2">{gmailActiveEmail.subject}</h4>
+                          <div dangerouslySetInnerHTML={{ __html: gmailActiveEmail.body || gmailActiveEmail.snippet }} />
+                        </div>
+                      </div>
+                    ) : (
+                      /* Right Pane: Message List */
+                      <div className="flex-1 flex flex-col overflow-hidden">
+                        <div className="flex justify-between items-center mb-4 flex-row-reverse">
+                          <h3 className="text-sm font-black text-slate-700">דואר שהתקבל לאחרונה</h3>
+                          <div className="flex gap-2">
+                            <button 
+                              onClick={() => {
+                                setGmailSearchQuery('גליה');
+                                if (gmailToken) fetchGmailEmails(gmailToken, 'גליה');
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-[#C5A059]/10 hover:bg-[#C5A059]/20 border border-[#C5A059]/20 text-xs font-bold text-[#C5A059]"
+                            >
+                              הודעות מגליה
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setGmailSearchQuery('תעודת משלוח');
+                                if (gmailToken) fetchGmailEmails(gmailToken, 'תעודת משלוח');
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 text-xs font-bold text-orange-600"
+                            >
+                              תעודות משלוח
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1 pl-1">
+                          {gmailMessages.length > 0 ? (
+                            gmailMessages.map((msg) => (
+                              <div
+                                key={msg.id}
+                                onClick={() => setGmailActiveEmail(msg)}
+                                className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col items-end hover:shadow-lg hover:border-[#C5A059]/40 cursor-pointer transition-all gap-1 group text-right"
+                              >
+                                <div className="flex justify-between items-center w-full flex-row-reverse mb-1">
+                                  <span className="text-xs font-black text-slate-800 max-w-[200px] truncate">{msg.from}</span>
+                                  <span className="text-[10px] text-slate-400 font-bold">{msg.date ? msg.date.split(',')[0] : ''}</span>
+                                </div>
+                                <h4 className="text-sm font-black text-[#1E293B] leading-snug group-hover:text-[#C5A059] transition-colors">{msg.subject}</h4>
+                                <p className="text-xs text-slate-400 line-clamp-2 mt-1 font-medium">{msg.snippet}</p>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="py-20 text-center space-y-4 bg-white rounded-[3rem] border border-dashed border-slate-200">
+                              <Mail size={48} className="mx-auto text-slate-200" />
+                              <p className="text-slate-400 font-bold font-sans">לא נמצאו הודעות. נסו חיפוש אחר.</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
