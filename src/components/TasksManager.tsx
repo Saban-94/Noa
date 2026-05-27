@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GoogleTaskList, GoogleTask, listTaskLists, listTasks, createTask, updateTask, deleteTask, createTaskList } from '../services/tasksService';
-import { CheckCircle2, Circle, Plus, Trash2, Calendar, FileText, Loader2, Sparkles, FolderPlus, Compass, ListTodo, X } from 'lucide-react';
+import { CheckCircle2, Circle, Plus, Trash2, Calendar, FileText, Loader2, Sparkles, FolderPlus, Compass, ListTodo, X, AlertTriangle } from 'lucide-react';
 import { playSound } from '../lib/audioService';
 
 interface TasksManagerProps {
@@ -15,6 +15,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({ token, onClose }) =>
   const [loadingLists, setLoadingLists] = useState<boolean>(false);
   const [loadingTasks, setLoadingTasks] = useState<boolean>(false);
   const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('active');
+  const [error, setError] = useState<string | null>(null);
 
   // New task form state
   const [newTaskTitle, setNewTaskTitle] = useState<string>('');
@@ -30,14 +31,18 @@ export const TasksManager: React.FC<TasksManagerProps> = ({ token, onClose }) =>
   // Load Task Lists
   const fetchLists = async () => {
     setLoadingLists(true);
+    setError(null);
     try {
       const lists = await listTaskLists(token);
       setTaskLists(lists);
-      if (lists.length > 0 && !selectedListId) {
-        setSelectedListId(lists[0].id);
+      if (lists.length > 0) {
+        if (!selectedListId || !lists.some(l => l.id === selectedListId)) {
+          setSelectedListId(lists[0].id);
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch task lists", err);
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoadingLists(false);
     }
@@ -47,6 +52,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({ token, onClose }) =>
   const fetchTasksForList = async (listId: string) => {
     if (!listId) return;
     setLoadingTasks(true);
+    setError(null);
     try {
       const listItems = await listTasks(token, listId, true);
       // Sort tasks: Active first, ordered by position (or updated), completed at the bottom
@@ -57,8 +63,9 @@ export const TasksManager: React.FC<TasksManagerProps> = ({ token, onClose }) =>
         return a.status === 'completed' ? 1 : -1;
       });
       setTasks(sorted);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch tasks for list:", listId, err);
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoadingTasks(false);
     }
@@ -244,6 +251,10 @@ export const TasksManager: React.FC<TasksManagerProps> = ({ token, onClose }) =>
             <div className="py-6 flex justify-center">
               <Loader2 className="animate-spin text-[#C5A059]" size={20} />
             </div>
+          ) : error ? (
+            <div className="p-3 bg-red-50 text-red-700 rounded-xl border border-red-100 text-[10px] font-bold text-center">
+              שגיאת סנכרון מול שירותי גוגל. ראו פרטים פותרים במסך המרכזי.
+            </div>
           ) : (
             <div className="space-y-1">
               {taskLists.map(list => {
@@ -269,7 +280,7 @@ export const TasksManager: React.FC<TasksManagerProps> = ({ token, onClose }) =>
             </div>
           )}
 
-          {/* Dashboard Quick Status */}
+              {/* Dashboard Quick Status */}
           <div className="mt-auto bg-[#1E293B] text-white p-4 rounded-2xl relative overflow-hidden hidden md:block border border-white/5 shadow-md">
             <div className="absolute top-0 right-0 w-24 h-24 bg-[#C5A059]/10 blur-2xl rounded-full" />
             <div className="relative">
@@ -280,6 +291,20 @@ export const TasksManager: React.FC<TasksManagerProps> = ({ token, onClose }) =>
                 </span>
                 <span className="text-[10px] text-slate-400 font-bold">פעילות בקבוצה</span>
               </div>
+
+              {/* Overdue Tasks Badge in Sidebar Metrics */}
+              {tasks.some(t => t.status !== 'completed' && t.due && new Date(t.due).getTime() < new Date().setHours(0,0,0,0)) && (
+                <div className="flex justify-between items-center mb-3 bg-red-500/10 px-2.5 py-1.5 rounded-xl border border-red-500/20 text-red-300">
+                  <span className="text-sm font-black font-sans">
+                    {tasks.filter(t => t.status !== 'completed' && t.due && new Date(t.due).getTime() < new Date().setHours(0,0,0,0)).length}
+                  </span>
+                  <span className="text-[9px] font-black flex items-center gap-1">
+                    <AlertTriangle size={10} className="animate-pulse text-red-400" />
+                    באיחור תפעולי
+                  </span>
+                </div>
+              )}
+
               <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
                 <div 
                   className="bg-[#C5A059] h-full" 
@@ -342,44 +367,90 @@ export const TasksManager: React.FC<TasksManagerProps> = ({ token, onClose }) =>
                   <Loader2 className="animate-spin text-[#C5A059]" size={32} />
                   <p className="text-xs font-bold text-slate-400">טוען משימות מהרשת של גוגל...</p>
                 </div>
+              ) : error ? (
+                <div className="flex-1 flex flex-col items-center justify-center gap-4 py-8 px-4 text-center">
+                  <div className="size-14 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20 text-amber-600">
+                    <AlertTriangle size={24} />
+                  </div>
+                  <div className="max-w-md">
+                    <h4 className="text-sm font-black text-slate-800 mb-2">חיבור ל-Google Tasks נחסם (שגיאה 403 / שירות כבוי)</h4>
+                    <p className="text-xs text-slate-500 leading-relaxed mb-4 font-sans">
+                      נראה שאינטגרציית המשימות (Google Tasks API) אינה מופעלת בפרויקט הגוגל שלך <code className="bg-slate-100 font-mono px-1.5 py-0.5 rounded-md text-amber-700 font-bold">saban-ai-drive</code>. על מנת לאפשר סנכרון של משימות ח.סבן בזמן אמת, יש להפעיל את השרות בקונסולת Google Cloud.
+                    </p>
+                    
+                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-right space-y-2 text-[11px] font-medium text-slate-600">
+                      <p className="font-extrabold text-[#1E293B]">צעדים קלים לפתרון הבעיה במערכת:</p>
+                      <ol className="list-decimal list-inside space-y-1.5 text-slate-600">
+                        <li>פתח את: <a href="https://console.cloud.google.com/apis/library/tasks.googleapis.com" target="_blank" rel="noreferrer" className="text-[#C5A059] hover:underline font-bold font-sans">ספריית Google Tasks API בקונסול ↗</a></li>
+                        <li>ודא שבחרת בפרויקט: <span className="bg-slate-200 px-1 py-0.5 rounded font-mono font-bold text-slate-800">saban-ai-drive</span> בחלק העליון.</li>
+                        <li>לחץ על כפתור <strong>Enable</strong> (הפעל) כדי לאשר את השירות לשימוש.</li>
+                        <li>האינטגרציה תעבוד מיידית.</li>
+                      </ol>
+                    </div>
+
+                    <button
+                      onClick={fetchLists}
+                      className="mt-5 px-5 py-2 hover:text-[#1E293B] hover:bg-[#C5A059] text-white bg-slate-800 text-xs font-black rounded-xl transition-all shadow-md"
+                    >
+                      לחץ כאן כדי לרענן ולנסות שוב
+                    </button>
+                  </div>
+                </div>
               ) : filteredTasks.length > 0 ? (
                 <div className="space-y-2.5">
                   {filteredTasks.map(task => {
                     const isCompleted = task.status === 'completed';
+                    const isOverdue = !isCompleted && task.due && new Date(task.due).getTime() < new Date().setHours(0, 0, 0, 0);
                     
                     return (
                       <div
                         key={task.id}
                         className={`p-3.5 rounded-2xl border flex items-start gap-3 transition-all group relative hover:border-[#C5A059]/30 ${
-                          isCompleted ? 'bg-slate-50/70 border-slate-100 opacity-60' : 'bg-white border-slate-100 shadow-xs'
+                          isCompleted 
+                            ? 'bg-slate-50/70 border-slate-100 opacity-60' 
+                            : isOverdue 
+                              ? 'bg-red-50/20 border-red-200/80 shadow-[0_2px_12px_rgba(239,68,68,0.04)] animate-pulse-subtle' 
+                              : 'bg-white border-slate-100 shadow-xs'
                         }`}
                       >
                         {/* Toggle complete button */}
                         <button
                           onClick={() => handleToggleTask(task)}
                           className={`mt-0.5 transition-colors focus:outline-none ${
-                            isCompleted ? 'text-emerald-500' : 'text-slate-400 hover:text-[#C5A059]'
+                            isCompleted ? 'text-emerald-500' : isOverdue ? 'text-red-500 hover:text-red-600' : 'text-slate-400 hover:text-[#C5A059]'
                           }`}
                         >
                           {isCompleted ? <CheckCircle2 size={18} /> : <Circle size={18} />}
                         </button>
 
                         <div className="flex-1 text-right min-w-0">
-                          <h4 className={`text-sm font-bold leading-snug break-words ${
-                            isCompleted ? 'line-through text-slate-400' : 'text-slate-800'
-                          }`}>
-                            {task.title}
-                          </h4>
+                          <div className="flex items-start gap-2 justify-between flex-row-reverse">
+                            <h4 className={`text-sm font-bold leading-snug break-words flex-1 ${
+                              isCompleted ? 'line-through text-slate-400 font-medium' : isOverdue ? 'text-red-950 font-black' : 'text-slate-800'
+                            }`}>
+                              {task.title}
+                            </h4>
+                            {isOverdue && (
+                              <span className="shrink-0 text-[9px] bg-red-100 text-red-700 font-extrabold px-2 py-0.5 rounded-full border border-red-200/50 flex items-center gap-1">
+                                <AlertTriangle size={10} className="animate-pulse" />
+                                באיחור תפעולי
+                              </span>
+                            )}
+                          </div>
                           
                           {task.notes && (
-                            <p className="text-xs text-slate-500 mt-1 whitespace-pre-wrap font-medium break-words">
+                            <p className={`text-xs mt-1 whitespace-pre-wrap font-medium break-words ${
+                              isOverdue ? 'text-red-700/80' : 'text-slate-500'
+                            }`}>
                               {task.notes}
                             </p>
                           )}
 
                           {task.due && (
-                            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold mt-2 font-sans flex-row-reverse justify-end">
-                              <Calendar size={12} className="text-[#C5A059]" />
+                            <div className={`flex items-center gap-1.5 text-[10px] font-bold mt-2 font-sans flex-row-reverse justify-end ${
+                              isOverdue ? 'text-red-600 font-black' : 'text-slate-400'
+                            }`}>
+                              <Calendar size={12} className={isOverdue ? 'text-red-500' : 'text-[#C5A059]'} />
                               <span>יעד: {new Date(task.due).toLocaleDateString('he-IL')}</span>
                             </div>
                           )}

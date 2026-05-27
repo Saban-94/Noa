@@ -32,6 +32,7 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({ token, onClose
   const [events, setEvents] = useState<GoogleCalendarEvent[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [creating, setCreating] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   // New Event Form State
   const [summary, setSummary] = useState<string>('');
@@ -75,11 +76,13 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({ token, onClose
   // Fetch upcoming calendar events
   const loadEvents = async () => {
     setLoading(true);
+    setError(null);
     try {
       const gEvents = await listCalendarEvents(token);
       setEvents(gEvents);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to load calendar events", err);
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -262,6 +265,35 @@ export const CalendarManager: React.FC<CalendarManagerProps> = ({ token, onClose
               <div className="flex-1 flex flex-col items-center justify-center gap-3 py-20">
                 <Loader2 className="animate-spin text-[#C5A059]" size={32} />
                 <p className="text-xs font-bold text-slate-400">מושך אירועים מיומן Google...</p>
+              </div>
+            ) : error ? (
+              <div className="flex-1 flex flex-col items-center justify-center gap-4 py-8 px-4 text-center">
+                <div className="size-14 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20 text-amber-600">
+                  <AlertTriangle size={24} />
+                </div>
+                <div className="max-w-md">
+                  <h4 className="text-sm font-black text-slate-800 mb-2">חיבור ל-Google Calendar נחסם (שגיאה 403 / שירות כבוי)</h4>
+                  <p className="text-xs text-slate-500 leading-relaxed mb-4 font-sans">
+                    נראה שאינטגרציית לוח השנה (Google Calendar API) אינה מופעלת בפרויקט הגוגל שלך <code className="bg-slate-100 font-mono px-1.5 py-0.5 rounded-md text-amber-700 font-bold">saban-ai-drive</code>. על מנת לאפשר סנכרון של יומני ח.סבן בזמן אמת, יש להפעיל את השרות בקונסולת Google Cloud.
+                  </p>
+                  
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-right space-y-2 text-[11px] font-medium text-slate-600">
+                    <p className="font-extrabold text-[#1E293B]">צעדים קלים לפתרון הבעיה במערכת:</p>
+                    <ol className="list-decimal list-inside space-y-1.5 text-slate-600">
+                      <li>פתח את: <a href="https://console.cloud.google.com/apis/library/calendar-json.googleapis.com" target="_blank" rel="noreferrer" className="text-[#C5A059] hover:underline font-bold font-sans">ספריית Google Calendar API בקונסול ↗</a></li>
+                      <li>ודא שבחרת בפרויקט: <span className="bg-slate-200 px-1 py-0.5 rounded font-mono font-bold text-slate-800">saban-ai-drive</span> בחלק העליון.</li>
+                      <li>לחץ על כפתור <strong>Enable</strong> (הפעל) כדי לאשר את השירות לשימוש.</li>
+                      <li>האינטגרציה תעבוד מיידית.</li>
+                    </ol>
+                  </div>
+
+                  <button
+                    onClick={loadEvents}
+                    className="mt-5 px-5 py-2 hover:text-[#1E293B] hover:bg-[#C5A059] text-white bg-slate-800 text-xs font-black rounded-xl transition-all shadow-md"
+                  >
+                    לחץ כאן כדי לרענן ולנסות שוב
+                  </button>
+                </div>
               </div>
             ) : events.length > 0 ? (
               <div className="space-y-3">
