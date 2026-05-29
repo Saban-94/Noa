@@ -8,34 +8,14 @@
         "id": { "type": "string" },
         "customerId": { "type": "string" },
         "customerName": { "type": "string" },
-        "items": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "productId": { "type": "string" },
-              "productName": { "type": "string" },
-              "quantity": { "type": "number" },
-              "unit": { "type": "string" }
-            }
-          }
-        },
+        "items": { "type": "array", "items": { "type": "object", "properties": { "productId": { "type": "string" }, "productName": { "type": "string" }, "quantity": { "type": "number" }, "unit": { "type": "string" } } } },
         "driverId": { "type": "string" },
         "driverName": { "type": "string" },
-        "status": {
-          "type": "string",
-          "enum": ["pending", "ready", "scheduled", "in_transit", "delivered", "cancelled"]
-        },
+        "status": { "type": "string", "enum": ["pending", "ready", "scheduled", "in_transit", "delivered", "cancelled"] },
         "deliveryAddress": { "type": "string" },
-        "deliveryLocation": {
-          "type": "object",
-          "properties": {
-            "lat": { "type": "number" },
-            "lng": { "type": "number" }
-          }
-        },
-        "currentLat": { "type": "number", "description": "Current real-time latitude" },
-        "currentLng": { "type": "number", "description": "Current real-time longitude" },
+        "deliveryLocation": { "type": "object", "properties": { "lat": { "type": "number" }, "lng": { "type": "number" } } },
+        "currentLat": { "type": "number" },
+        "currentLng": { "type": "number" },
         "dueDate": { "type": "string", "format": "date-time" },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" },
@@ -46,7 +26,7 @@
     },
     "InventoryItem": {
       "title": "Inventory Item",
-      "description": "A building material product in stock",
+      "description": "Stock of materials",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -55,20 +35,22 @@
         "unit": { "type": "string" },
         "minLevel": { "type": "number" },
         "price": { "type": "number" },
-        "category": { "type": "string" }
+        "category": { "type": "string" },
+        "sku": { "type": "string" }
       },
       "required": ["name", "quantity", "unit"]
     },
     "Customer": {
       "title": "Customer",
-      "description": "Client information",
+      "description": "Client database",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
         "phone": { "type": "string" },
         "address": { "type": "string" },
-        "email": { "type": "string" }
+        "email": { "type": "string" },
+        "customerNumber": { "type": "string" }
       },
       "required": ["name"]
     },
@@ -87,6 +69,18 @@
       },
       "required": ["name", "status"]
     },
+    "MorningReport": {
+      "title": "Morning Report",
+      "description": "Daily operational summary",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "date": { "type": "string" },
+        "orderIds": { "type": "array", "items": { "type": "string" } },
+        "reportText": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
     "AILog": {
       "title": "AI Interaction Log",
       "description": "Log of AI assistant interactions",
@@ -101,39 +95,15 @@
     }
   },
   "firestore": {
-    "orders": {
-      "schema": "Order",
-      "description": "Active and past construction orders"
-    },
-    "inventory": {
-      "schema": "InventoryItem",
-      "description": "Stock of materials"
-    },
-    "customers": {
-      "schema": "Customer",
-      "description": "Client database"
-    },
-    "drivers": {
-      "schema": "Driver",
-      "description": "Fleet information"
-    },
-    "ai_logs": {
-      "schema": "AILog",
-      "description": "AI trace logs"
-    },
-    "brands": { "schema": "object", "description": "Brand management" },
-    "bridge_sessions": { "schema": "object", "description": "Integration sessions" },
-    "categories": { "schema": "object", "description": "Product categories" },
-    "chats": { "schema": "object", "description": "Customer support chats" },
-    "encyclopedia_categories": { "schema": "object", "description": "Knowledge base categories" },
-    "encyclopedia_items": { "schema": "object", "description": "Knowledge base articles" },
-    "internal_team_chats": { "schema": "object", "description": "Team communication" },
-    "morning_reports": { "schema": "object", "description": "Daily operational summaries" },
-    "office_messages": { "schema": "object", "description": "HQ announcements" },
-    "reminders": { "schema": "object", "description": "Task reminders" },
+    "orders": { "schema": "Order" },
+    "inventory": { "schema": "InventoryItem" },
+    "customers": { "schema": "Customer" },
+    "drivers": { "schema": "Driver" },
+    "morning_reports": { "schema": "MorningReport" },
+    "ai_logs": { "schema": "AILog" },
     "sales": { "schema": "object", "description": "Sales records" },
-    "user_magic_pages": { "schema": "object", "description": "Custom user landing pages" },
-    "user_settings": { "schema": "object", "description": "User preferences" },
-    "users": { "schema": "object", "description": "System users" }
+    "office_messages": { "schema": "object", "description": "HQ announcements" },
+    "chats": { "schema": "object", "description": "Customer support chats" },
+    "reminders": { "schema": "object", "description": "Task reminders" }
   }
 }
